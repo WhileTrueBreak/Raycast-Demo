@@ -60,7 +60,7 @@ public class Ray {
 	}
 
 	public void render(Graphics g){
-		g.setColor(new Color(0, 0, 0));
+		g.setColor(new Color(0, 0, 0, 0.5f));
 		g.drawLine((int)(x1*handler.getCamera().getScale()-handler.getCamera().getXoff()), 
 				   (int)(y1*handler.getCamera().getScale()-handler.getCamera().getYoff()), 
 				   (int)(x2*handler.getCamera().getScale()-handler.getCamera().getXoff()), 
@@ -79,7 +79,6 @@ public class Ray {
 			pointDistance = Func.dist(x1, y1, collisionPoint.getX(), collisionPoint.getY());
 			//if collision is mirror and not at iteration limit create reflected ray
 			if(layer < REFLECTION_LIMIT){
-				
 				if(collisionObject instanceof RayMirror){
 					nextRay = getReflectedRay(collisionObject, dist-pointDistance);
 				}else if(collisionObject instanceof RayPass){
@@ -93,7 +92,9 @@ public class Ray {
 		x2 = (float) (x1+pointDistance*Math.cos(theta));
 		y2 = (float) (y1+pointDistance*Math.sin(theta));
 		//update next ray if exist
-		if(nextRay!=null) nextRay.update();
+		if(nextRay!=null) {
+			nextRay.update();
+		}
 	}
 
 	private Ray getPassedRay(RayObject collisionObject, float remainingDistance) {
@@ -115,16 +116,16 @@ public class Ray {
 
 		//render normal
 		Vector collisionPoint = Collisions.lineLineVector(reflectObject.getX1(), reflectObject.getY1(), reflectObject.getX2(), reflectObject.getY2(), x1, y1, x2, y2);
-
+		
 		//get reflected ray
 		Vector normalizedRay = new Vector((float) Math.cos(theta), (float) Math.sin(theta));
 		float dot = normalizedRay.getX()*normal.getX()+normalizedRay.getY()*normal.getY();
-		normal = normal.mult(dot*2);
-		normal = normalizedRay.sub(normal);
-
+		normal = Vector.mult(normal, dot*2);
+		normal = Vector.sub(normalizedRay, normal);
+		
 		//get angle of reflected vector
 		angle = (float) Math.atan2(normal.getY(), normal.getX());
-
+		
 		//create new ray
 		Ray newRay = new Ray(handler, collisionPoint.getX(), collisionPoint.getY(), angle, remainingDistance, layer+1);
 		//initialise variables
