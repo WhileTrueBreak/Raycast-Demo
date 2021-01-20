@@ -24,8 +24,10 @@ public class RayWall extends RayObject{
 	}
 
 	@Override
-	public void update() {
-		
+	public void update() {}
+
+	public Color getColor() {
+		return color;
 	}
 
 }

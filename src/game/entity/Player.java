@@ -26,11 +26,12 @@ public class Player extends Entity{
 
 	@Override
 	public void update() {
+		move();
 		rayEmitter.setX(x+PLAYER_WIDTH/2);
 		rayEmitter.setY(y+PLAYER_HEIGHT/2);
 		rayEmitter.setRayObjects(handler.getWorld().getRayObjects());
 		rayEmitter.updateRays();
-		move();
+		handler.getCamera().focusOnEntity(this, 10);
 	}
 	
 	@Override

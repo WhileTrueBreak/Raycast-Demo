@@ -85,6 +85,7 @@ public class Ray {
 					nextRay = getPassedRay(collisionObject, dist-pointDistance);
 				}
 			}
+			endRayObject = collisionObject;
 		}
 		//set new distance
 		dist = pointDistance;
@@ -157,6 +158,20 @@ public class Ray {
 	public void setPrevCollision(RayObject prevCollision){
 		this.prevCollision = prevCollision;
 	}
+	
+	public ArrayList<RayObject> getRayEndChain(){
+		ArrayList<RayObject>chain = new ArrayList<RayObject>();
+		if(endRayObject != null) chain.add(endRayObject);
+		if(nextRay != null) chain.addAll(nextRay.getRayEndChain());
+		return chain;
+	}
+	
+	public float getDistance(int depth) {
+		if(depth==0) return 0;
+		float total = dist;
+		if(nextRay != null) total+=nextRay.getDistance(depth-1);
+		return total;
+	}
 
 	//GETTERS
 	public RayObject getEndRayObject() {
@@ -166,5 +181,8 @@ public class Ray {
 	public Ray getRay() {
 		return nextRay;
 	}
-
+	
+	public float getTheta() {
+		return theta;
+	}
 }
