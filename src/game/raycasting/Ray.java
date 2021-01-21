@@ -13,7 +13,7 @@ import utils.Vector;
 import utils.collision.Collisions;
 
 public class Ray {
-	public static int REFLECTION_LIMIT = 10;
+	public static int REFLECTION_LIMIT = 20;
 
 	private Handler handler;
 	

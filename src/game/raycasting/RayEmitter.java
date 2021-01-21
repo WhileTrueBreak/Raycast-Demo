@@ -96,7 +96,7 @@ public class RayEmitter {
 //		//remove end
 //		rays.remove(rays.size()-1);
 		for(Ray r:rays) {
-			//r.render(g);
+			r.render(g);
 		}
 	}
 	

@@ -26,10 +26,15 @@ public class World {
 		player = new Player(5, 1, handler);
 
 		rayObjects.add(new RayWall(handler, -1, 0, -1, 4, new Color(255, 0, 0)));
-		rayObjects.add(new RayMirror(handler, 0, 1, 5, 1));
-		rayObjects.add(new RayPass(handler, 0, 1.5f, 2, 2, new Color(0, 0, 255)));
-		rayObjects.add(new RayPass(handler, 3, 2, 5, 2.5f, new Color(0, 0, 255)));
+		rayObjects.add(new RayWall(handler, -1, 0, 6, 0, new Color(255, 0, 0)));
+		rayObjects.add(new RayWall(handler, 6, 0, 6, 4, new Color(255, 0, 0)));
+		rayObjects.add(new RayWall(handler, 6, 4, -1, 4, new Color(255, 0, 0)));
+		
+		rayObjects.add(new RayPass(handler, 0, 1.5f, 2, 2.5f, new Color(0, 0, 255)));
+		rayObjects.add(new RayPass(handler, 3, 2.5f, 5, 1.5f, new Color(0, 0, 255)));
+		
 		rayObjects.add(new RayMirror(handler, 0, 3, 5, 3));
+		rayObjects.add(new RayMirror(handler, 0, 1, 5, 1));
 		
 	}
 
@@ -42,7 +47,7 @@ public class World {
 
 	public void render(Graphics g) {
 		for(RayObject obj:rayObjects) {
-			//obj.render(g);
+			obj.render(g);
 		}
 		player.render(g);
 	}
