@@ -87,7 +87,7 @@ public class Main implements Runnable{
 		running = true;
 		init();
 		
-		int fps = 60;
+		int fps = 6000;
 		double timeperTick = 1000000000/fps;
 		double delta = 0;
 		long now;

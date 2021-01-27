@@ -20,6 +20,8 @@ public class World {
 	
 	private Player player;
 	
+	private float t = 0;
+	
 	public World(Handler handler) {
 		this.handler = handler;
 		handler.setWorld(this);
@@ -38,8 +40,9 @@ public class World {
 		RayPortal rp2 = new RayPortal(handler, 0, 0, s, 0);
 		rayObjects.add(rp2);
 		rayObjects.add(new RayPortal(handler, 0, s, s, s, rp2));
-		
+
 		rayObjects.add(new RayPass(handler, 1, 1, 3, 3, new Color(0, 0, 255)));
+		rayObjects.add(new RayWall(handler, 1, 1, 3, 3, new Color(255, 0, 0)));
 		
 //		rayObjects.add(new RayWall(handler, 6, 4, -1, 4, new Color(255, 0, 0)));
 //		rayObjects.add(new RayWall(handler, -1, 0, -1, 4, new Color(255, 0, 0)));
@@ -61,6 +64,15 @@ public class World {
 			obj.update();
 		}
 		player.update();
+		rayObjects.get(4).setX1((float) Math.cos(t)+2);
+		rayObjects.get(4).setY1((float) Math.sin(t)+2);
+		rayObjects.get(4).setX2((float) Math.cos(Math.PI+t)+2);
+		rayObjects.get(4).setY2((float) Math.sin(Math.PI+t)+2);
+		rayObjects.get(5).setX1((float) Math.cos(t+Math.PI/2)+2);
+		rayObjects.get(5).setY1((float) Math.sin(t+Math.PI/2)+2);
+		rayObjects.get(5).setX2((float) Math.cos(Math.PI*3/2+t)+2);
+		rayObjects.get(5).setY2((float) Math.sin(Math.PI*3/2+t)+2);
+		t+=2/handler.getCurrentFps();
 	}
 
 	public void render(Graphics g) {

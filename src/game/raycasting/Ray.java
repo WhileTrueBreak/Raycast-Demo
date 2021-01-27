@@ -92,6 +92,7 @@ public class Ray {
 		}
 		//set new distance
 		dist = pointDistance;
+		
 		//update x2 and y2
 		x2 = (float) (x1+pointDistance*Math.cos(theta));
 		y2 = (float) (y1+pointDistance*Math.sin(theta));
