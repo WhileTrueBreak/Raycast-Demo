@@ -8,6 +8,7 @@ import game.Handler;
 import game.raycasting.object.RayMirror;
 import game.raycasting.object.RayObject;
 import game.raycasting.object.RayPass;
+import game.raycasting.object.RayPortal;
 import utils.Func;
 import utils.Vector;
 import utils.collision.Collisions;
@@ -80,9 +81,11 @@ public class Ray {
 			//if collision is mirror and not at iteration limit create reflected ray
 			if(layer < REFLECTION_LIMIT){
 				if(collisionObject instanceof RayMirror){
-					nextRay = getReflectedRay(collisionObject, dist-pointDistance);
+					nextRay = getReflectedRay(collisionObject, collisionPoint, dist-pointDistance);
 				}else if(collisionObject instanceof RayPass){
-					nextRay = getPassedRay(collisionObject, dist-pointDistance);
+					nextRay = getPassedRay(collisionObject, collisionPoint, dist-pointDistance);
+				}else if(collisionObject instanceof RayPortal){
+					nextRay = getPortaledRay(collisionObject, collisionPoint, dist-pointDistance);
 				}
 			}
 			endRayObject = collisionObject;
@@ -98,8 +101,8 @@ public class Ray {
 		}
 	}
 
-	private Ray getPassedRay(RayObject collisionObject, float remainingDistance) {
-		Vector collisionPoint = Collisions.lineLineVector(collisionObject.getX1(), collisionObject.getY1(), collisionObject.getX2(), collisionObject.getY2(), x1, y1, x2, y2);
+	private Ray getPassedRay(RayObject collisionObject, Vector collisionPoint, float remainingDistance) {
+		//Vector collisionPoint = Collisions.lineLineVector(collisionObject.getX1(), collisionObject.getY1(), collisionObject.getX2(), collisionObject.getY2(), x1, y1, x2, y2);
 		//create new ray
 		Ray newRay = new Ray(handler, collisionPoint.getX(), collisionPoint.getY(), theta, remainingDistance, layer);
 		//initialise variables
@@ -108,7 +111,7 @@ public class Ray {
 		return newRay;
 	}
 
-	private Ray getReflectedRay(RayObject reflectObject, float remainingDistance){
+	private Ray getReflectedRay(RayObject reflectObject, Vector collisionPoint, float remainingDistance){
 		//get normal of reflected object
 		float gradient = (reflectObject.getY2()-reflectObject.getY1())/(reflectObject.getX2()-reflectObject.getX1());
 		float normalGradient = -1/gradient;
@@ -116,7 +119,7 @@ public class Ray {
 		Vector normal = new Vector((float) Math.cos(angle), (float) Math.sin(angle));
 
 		//render normal
-		Vector collisionPoint = Collisions.lineLineVector(reflectObject.getX1(), reflectObject.getY1(), reflectObject.getX2(), reflectObject.getY2(), x1, y1, x2, y2);
+		//Vector collisionPoint = Collisions.lineLineVector(reflectObject.getX1(), reflectObject.getY1(), reflectObject.getX2(), reflectObject.getY2(), x1, y1, x2, y2);
 		
 		//get reflected ray
 		Vector normalizedRay = new Vector((float) Math.cos(theta), (float) Math.sin(theta));
@@ -132,6 +135,28 @@ public class Ray {
 		//initialise variables
 		newRay.setRayObjects(rayObjects);
 		newRay.setPrevCollision(reflectObject);
+		return newRay;
+	}
+	
+	private Ray getPortaledRay(RayObject rayObject, Vector collisionPoint, float remainingDistance){
+		RayPortal portalObject = (RayPortal) rayObject;
+		RayPortal linkedPortal = portalObject.getLinkedPortal();
+		float enteranceAngle = (float) Math.atan2(portalObject.getY2()-portalObject.getY1(), portalObject.getX2()-portalObject.getX1());
+		float exitAngle = (float) Math.atan2(linkedPortal.getY2()-linkedPortal.getY1(), linkedPortal.getX2()-linkedPortal.getX1());
+		float deltaAngle = exitAngle-enteranceAngle;
+		float portalLength = Func.dist(portalObject.getX1(), portalObject.getY1(), portalObject.getX2(), portalObject.getY2());
+		float fromCollision = Func.dist(portalObject.getX1(), portalObject.getY1(), collisionPoint.getX(), collisionPoint.getY());
+		float collisionPercent = fromCollision/portalLength;
+
+		float exitdx = linkedPortal.getX2()-linkedPortal.getX1();
+		float exitdy = linkedPortal.getY2()-linkedPortal.getY1();
+		Vector exitPoint = new Vector(linkedPortal.getX1()+exitdx*collisionPercent, linkedPortal.getY1()+exitdy*collisionPercent);
+		
+		//create new ray
+		Ray newRay = new Ray(handler, exitPoint.getX(), exitPoint.getY(), theta+deltaAngle, remainingDistance, layer+1);
+		//initialise variables
+		newRay.setRayObjects(rayObjects);
+		newRay.setPrevCollision(linkedPortal);
 		return newRay;
 	}
 

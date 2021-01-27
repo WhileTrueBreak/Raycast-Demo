@@ -8,6 +8,7 @@ import game.Handler;
 import game.raycasting.object.RayMirror;
 import game.raycasting.object.RayObject;
 import game.raycasting.object.RayPass;
+import game.raycasting.object.RayPortal;
 import game.raycasting.object.RayWall;
 
 public class RayEmitter {
@@ -27,7 +28,7 @@ public class RayEmitter {
 	
 	public void updateRays() {
 		rays = new ArrayList<Ray>();
-		for(int i = 0;i < 360;i++) {
+		for(float i = 0;i < 360;i+=0.5f) {
 			Ray ray = new Ray(handler, x, y, (float) (i*Math.PI/180), 100);
 			ray.setRayObjects(rayObjects);
 			ray.update();
@@ -53,12 +54,16 @@ public class RayEmitter {
 					g.setColor(new Color(255, 0, 0));
 				}else if(chain.get(i) instanceof RayPass){
 					g.setColor(new Color(0, 0, 255));
+				}else if(chain.get(i) instanceof RayPortal){
+					g.setColor(new Color(255, 0, 255));
 				}
 				g.drawOval((int)(x*handler.getCamera().getScale()-handler.getCamera().getXoff())-2, 
 						   (int)(y*handler.getCamera().getScale()-handler.getCamera().getYoff())-2, 4, 4);
 			}
 		}
-		
+//		for(Ray r:rays) {
+//			r.render(g);
+//		}
 //		//add first to end
 //		rays.add(rays.get(0));
 //		for(int i = 0;i < rays.size()-1;i++) {
@@ -95,9 +100,6 @@ public class RayEmitter {
 //		}
 //		//remove end
 //		rays.remove(rays.size()-1);
-		for(Ray r:rays) {
-			r.render(g);
-		}
 	}
 	
 	public void setRayObjects(ArrayList<RayObject> rayObjects) {
