@@ -17,24 +17,26 @@ public class Camera {
 		this.scale = 1;
 	}
 	
-	public void focusOnEntity(Entity e, int spring) {
+	public void focusOnEntity(Entity e, float spring) {
 		float cameraSpring = spring;
 		float setX = (e.getX()+(float)e.getHitbox().getWidth()/2)*scale - handler.getWidth()/2;
 		float setY = (e.getY()+(float)e.getHitbox().getHeight()/2)*scale - handler.getHeight()/2;
 		if(cameraSpring <= 0)
 			move((setX-xoff), (setY-yoff));
 		else
-			move((setX-xoff)/cameraSpring, (setY-yoff)/cameraSpring);
+			move(((setX-xoff)/cameraSpring)/(float)handler.getCurrentFps(), 
+					((setY-yoff)/cameraSpring)/(float)handler.getCurrentFps());
 	}
 	
-	public void focusOnPoint(int x, int y, int spring) {
+	public void focusOnPoint(int x, int y, float spring) {
 		float cameraSpring = spring;
 		float setX = x*scale - handler.getWidth()/2;
 		float setY = y*scale - handler.getHeight()/2;
 		if(cameraSpring <= 0)
 			move((setX-xoff), (setY-yoff));
 		else
-			move((setX-xoff)/cameraSpring, (setY-yoff)/cameraSpring);
+			move(((setX-xoff)/cameraSpring)/(float)handler.getCurrentFps(), 
+					((setY-yoff)/cameraSpring)/(float)handler.getCurrentFps());
 	}
 	
 	public void move(float amtx, float amty) {

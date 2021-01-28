@@ -36,7 +36,7 @@ public class Player extends Entity{
 		rayEmitter.setY(y+PLAYER_HEIGHT/2);
 		rayEmitter.setRayObjects(handler.getWorld().getRayObjects());
 		rayEmitter.updateRays();
-		handler.getCamera().focusOnEntity(this, 50);
+		handler.getCamera().focusOnEntity(this, 0.3f);
 	}
 	
 	@Override

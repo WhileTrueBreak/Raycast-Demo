@@ -100,10 +100,10 @@ public class Collisions {
 	public static boolean lineRect(float x1, float y1, float x2, float y2, float rx, float ry, float rw, float rh) {
 		if(pointRect(x1, y1, rx, ry, rw, rh))return true;
 		if(pointRect(x2, y2, rx, ry, rw, rh))return true;
-		boolean left =   lineLine(x1,y1,x2,y2, rx,ry,rx, ry+rh)!=null;
-		boolean right =  lineLine(x1,y1,x2,y2, rx+rw,ry, rx+rw,ry+rh)!=null;
-		boolean top =    lineLine(x1,y1,x2,y2, rx,ry, rx+rw,ry)!=null;
-		boolean bottom = lineLine(x1,y1,x2,y2, rx,ry+rh, rx+rw,ry+rh)!=null;
+		boolean left =   lineLine(x1,y1,x2,y2, rx,ry,rx, ry+rh);
+		boolean right =  lineLine(x1,y1,x2,y2, rx+rw,ry, rx+rw,ry+rh);
+		boolean top =    lineLine(x1,y1,x2,y2, rx,ry, rx+rw,ry);
+		boolean bottom = lineLine(x1,y1,x2,y2, rx,ry+rh, rx+rw,ry+rh);
 		if (left || right || top || bottom) return true;
 		return false;
 	}

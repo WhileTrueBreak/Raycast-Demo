@@ -2,8 +2,11 @@ package game.raycasting;
 
 import java.awt.Color;
 import java.awt.Graphics;
+import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import game.Handler;
 import game.raycasting.object.RayMirror;
@@ -11,6 +14,7 @@ import game.raycasting.object.RayObject;
 import game.raycasting.object.RayPass;
 import game.raycasting.object.RayPortal;
 import game.raycasting.object.RayWall;
+import utils.collision.Collisions;
 
 public class RayEmitter {
 
@@ -28,13 +32,37 @@ public class RayEmitter {
 	}
 	
 	public void updateRays() {
+
+		float preceivedWidth = handler.getWidth()/handler.getCamera().getScale();
+		float preceivedHeight = handler.getHeight()/handler.getCamera().getScale();
+		
+		int MAX_T = 4;
+		
+		ExecutorService pool = Executors.newFixedThreadPool(MAX_T); 
+		
+		ArrayList<RayThread> rts = new ArrayList<RayThread>();
 		rays = new ArrayList<Ray>();
-		for(float i = 0;i < 360;i+=1f) {
-			Ray ray = new Ray(handler, x, y, (float) (i*Math.PI/180), 100);
+		for(float i = 0;i < 360;i+=0.5f) {
+			Ray ray = new Ray(handler, x, y, (float) (i*Math.PI/180), (float)Math.sqrt(preceivedWidth*preceivedWidth+preceivedHeight*preceivedHeight));
 			ray.setRayObjects(rayObjects);
-			ray.update();
-			rays.add(ray);
+			RayThread rt = new RayThread(ray);
+			rts.add(rt);
+			pool.execute(rt);
 		}
+		pool.shutdown();
+		while(!pool.isTerminated()) {}
+		for(RayThread rt:rts) {
+			rays.add(rt.getRay());
+		}
+		
+//		rays = new ArrayList<Ray>();
+//		for(float i = 0;i < 360;i+=1f) {
+//			Ray ray = new Ray(handler, x, y, (float) (i*Math.PI/180), 100);
+//			ray.setRayObjects(rayObjects);
+//			ray.update();
+//			rays.add(ray);
+//		}
+		
 //		Ray ray = new Ray(handler, x, y, (float) (100*Math.PI/180), 100);
 //		ray.setRayObjects(rayObjects);
 //		ray.update();
@@ -42,35 +70,6 @@ public class RayEmitter {
 	}
 	
 	public void render(Graphics g) {
-
-//		for(Ray r:rays) {
-//			r.render(g);
-//		}
-//		for(Ray ray:rays) {
-//			ArrayList<RayObject>chain = ray.getRayEndChain();
-//			for(int i = 0;i < chain.size();i++) {
-//				double x, y;
-//				x = Math.cos(ray.getTheta())*ray.getDistance(i+1)+this.x;
-//				y = Math.sin(ray.getTheta())*ray.getDistance(i+1)+this.y;
-//				if(chain.get(i) instanceof RayMirror) {
-//					g.setColor(new Color(0, 255, 0));
-//					g.drawOval((int)(x*handler.getCamera().getScale()-handler.getCamera().getXoff())-2, 
-//							   (int)(y*handler.getCamera().getScale()-handler.getCamera().getYoff())-2, 4, 4);
-//				}else if(chain.get(i) instanceof RayWall){
-//					g.setColor(new Color(255, 0, 0));
-//					g.drawOval((int)(x*handler.getCamera().getScale()-handler.getCamera().getXoff())-2, 
-//							   (int)(y*handler.getCamera().getScale()-handler.getCamera().getYoff())-2, 4, 4);
-//				}else if(chain.get(i) instanceof RayPass){
-//					g.setColor(new Color(0, 0, 255));
-//					g.drawOval((int)(x*handler.getCamera().getScale()-handler.getCamera().getXoff())-2, 
-//							   (int)(y*handler.getCamera().getScale()-handler.getCamera().getYoff())-2, 4, 4);
-//				}else if(chain.get(i) instanceof RayPortal){
-//					g.setColor(new Color(255, 0, 255));
-//					g.drawOval((int)(x*handler.getCamera().getScale()-handler.getCamera().getXoff())-2, 
-//							   (int)(y*handler.getCamera().getScale()-handler.getCamera().getYoff())-2, 4, 4);
-//				}
-//			}
-//		}
 		//format in to array
 		RayObject[][][] rayChains = new RayObject[rays.size()][0][0];
 		for(int i = 0;i < rayChains.length;i++) {
@@ -133,10 +132,17 @@ public class RayEmitter {
 								g.setColor(new Color(255, 0, 255));
 							}
 							
-							g.drawLine((int)(x1*handler.getCamera().getScale()-handler.getCamera().getXoff()), 
-									   (int)(y1*handler.getCamera().getScale()-handler.getCamera().getYoff()), 
-									   (int)(x2*handler.getCamera().getScale()-handler.getCamera().getXoff()), 
-									   (int)(y2*handler.getCamera().getScale()-handler.getCamera().getYoff()));
+							boolean inFrame = Collisions.lineRect(x1, y1, x2, y2, 
+									handler.getCamera().getXoff()/handler.getCamera().getScale(),
+									handler.getCamera().getYoff()/handler.getCamera().getScale(),
+									handler.getWidth()/handler.getCamera().getScale(),
+									handler.getHeight()/handler.getCamera().getScale()); 
+							if(inFrame) {
+								g.drawLine((int)(x1*handler.getCamera().getScale()-handler.getCamera().getXoff()), 
+										   (int)(y1*handler.getCamera().getScale()-handler.getCamera().getYoff()), 
+										   (int)(x2*handler.getCamera().getScale()-handler.getCamera().getXoff()), 
+										   (int)(y2*handler.getCamera().getScale()-handler.getCamera().getYoff()));
+							}
 						}
 					}
 				}
@@ -144,7 +150,35 @@ public class RayEmitter {
 			}
 		}
 		
-		
+
+//		for(Ray r:rays) {
+//			r.render(g);
+//		}
+//		for(Ray ray:rays) {
+//			ArrayList<RayObject>chain = ray.getRayEndChain();
+//			for(int i = 0;i < chain.size();i++) {
+//				double x, y;
+//				x = Math.cos(ray.getTheta())*ray.getDistance(i+1)+this.x;
+//				y = Math.sin(ray.getTheta())*ray.getDistance(i+1)+this.y;
+//				if(chain.get(i) instanceof RayMirror) {
+//					g.setColor(new Color(0, 255, 0));
+//					g.drawOval((int)(x*handler.getCamera().getScale()-handler.getCamera().getXoff())-2, 
+//							   (int)(y*handler.getCamera().getScale()-handler.getCamera().getYoff())-2, 4, 4);
+//				}else if(chain.get(i) instanceof RayWall){
+//					g.setColor(new Color(255, 0, 0));
+//					g.drawOval((int)(x*handler.getCamera().getScale()-handler.getCamera().getXoff())-2, 
+//							   (int)(y*handler.getCamera().getScale()-handler.getCamera().getYoff())-2, 4, 4);
+//				}else if(chain.get(i) instanceof RayPass){
+//					g.setColor(new Color(0, 0, 255));
+//					g.drawOval((int)(x*handler.getCamera().getScale()-handler.getCamera().getXoff())-2, 
+//							   (int)(y*handler.getCamera().getScale()-handler.getCamera().getYoff())-2, 4, 4);
+//				}else if(chain.get(i) instanceof RayPortal){
+//					g.setColor(new Color(255, 0, 255));
+//					g.drawOval((int)(x*handler.getCamera().getScale()-handler.getCamera().getXoff())-2, 
+//							   (int)(y*handler.getCamera().getScale()-handler.getCamera().getYoff())-2, 4, 4);
+//				}
+//			}
+//		}
 //		//add first to end
 //		rays.add(rays.get(0));
 //		for(int i = 0;i < rays.size()-1;i++) {
