@@ -8,6 +8,8 @@ public abstract class RayObject {
 
 	protected Handler handler;
 	protected float x1, y1, x2, y2;
+	
+	protected boolean transposeRay = false;
 
 	public RayObject(Handler handler, float x1, float y1, float x2, float y2){
 		this.handler = handler;
@@ -50,6 +52,10 @@ public abstract class RayObject {
 
 	public void setY2(float y2) {
 		this.y2 = y2;
+	}
+
+	public boolean canTransposeRay() {
+		return transposeRay;
 	}
 	
 }

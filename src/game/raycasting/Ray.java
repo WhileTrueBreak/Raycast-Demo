@@ -105,7 +105,7 @@ public class Ray {
 	private Ray getPassedRay(RayObject collisionObject, Vector collisionPoint, float remainingDistance) {
 		//Vector collisionPoint = Collisions.lineLineVector(collisionObject.getX1(), collisionObject.getY1(), collisionObject.getX2(), collisionObject.getY2(), x1, y1, x2, y2);
 		//create new ray
-		Ray newRay = new Ray(handler, collisionPoint.getX(), collisionPoint.getY(), theta, remainingDistance, layer);
+		Ray newRay = new Ray(handler, collisionPoint.getX(), collisionPoint.getY(), theta, remainingDistance, layer+1);
 		//initialise variables
 		newRay.setRayObjects(rayObjects);
 		newRay.setPrevCollision(collisionObject);
