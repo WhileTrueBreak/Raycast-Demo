@@ -2,9 +2,8 @@ package game.raycasting;
 
 import java.awt.Color;
 import java.awt.Graphics;
-import java.awt.Rectangle;
+import java.awt.List;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -15,7 +14,6 @@ import game.raycasting.object.RayPass;
 import game.raycasting.object.RayPortal;
 import game.raycasting.object.RayWall;
 import utils.Vector;
-import utils.collision.Collisions;
 
 public class RayEmitter {
 
@@ -43,7 +41,7 @@ public class RayEmitter {
 
 		ArrayList<RayThread> rts = new ArrayList<RayThread>();
 		rays = new ArrayList<Ray>();
-		for(float i = 0;i < 360;i+=0.5f) {
+		for(float i = 0;i < 360;i+=1) {
 			Ray ray = new Ray(handler, x, y, (float) (i*Math.PI/180), (float)Math.sqrt(preceivedWidth*preceivedWidth+preceivedHeight*preceivedHeight));
 			ray.setRayObjects(rayObjects);
 			RayThread rt = new RayThread(ray);
@@ -55,7 +53,45 @@ public class RayEmitter {
 		for(RayThread rt:rts) {
 			rays.add(rt.getRay());
 		}
-
+		pool = Executors.newFixedThreadPool(MAX_T); 
+		rts = new ArrayList<RayThread>();
+		//second pass
+		ArrayList<ArrayList<RayObject>> prevChain = segChain(rays.get(rays.size()-1).getRayEndChain());
+		ArrayList<ArrayList<RayObject>> currentChain = new ArrayList<ArrayList<RayObject>>();
+		for(int i = 0;i < rays.size();i++) {
+			boolean notMatching = false;
+			currentChain = segChain(rays.get(i).getRayEndChain());
+			if(prevChain.size()!=currentChain.size()) {
+				notMatching = true;
+			}else {
+				for(int j = 0;j < prevChain.size();j++) {
+					if(!(currentChain.get(j).containsAll(prevChain.get(j)) && prevChain.get(j).containsAll(currentChain.get(j)))) {
+						notMatching = true;
+						break;
+					}
+				}
+			}
+			if(notMatching) {
+				float inc = (float) (Math.PI/180)/10;
+				float startAngle = rays.get(i==0?rays.size()-1:i-1).getTheta();
+				float endAngle = rays.get(i).getTheta();
+				for(float j = startAngle+inc;j < endAngle;j+=inc) {
+					Ray ray = new Ray(handler, x, y, j, (float)Math.sqrt(preceivedWidth*preceivedWidth+preceivedHeight*preceivedHeight));
+					ray.setRayObjects(rayObjects);
+					RayThread rt = new RayThread(ray);
+					rts.add(rt);
+					pool.execute(rt);
+				}
+			}
+			prevChain = segChain(rays.get(i).getRayEndChain());
+		}
+		pool.shutdown();
+		while(!pool.isTerminated()) {}
+		for(RayThread rt:rts) {
+			rays.add(rt.getRay());
+		}
+		//sort by angle
+		rays.sort(new AngleSorter());
 		//		rays = new ArrayList<Ray>();
 		//		for(float i = 0;i < 360;i+=1f) {
 		//			Ray ray = new Ray(handler, x, y, (float) (i*Math.PI/180), 100);
@@ -259,6 +295,21 @@ public class RayEmitter {
 	//			}
 	//		}
 	//	}
+	
+	private ArrayList<ArrayList<RayObject>> segChain(ArrayList<RayObject> linkedChain){
+		ArrayList<ArrayList<RayObject>> segChain = new ArrayList<ArrayList<RayObject>>();
+		ArrayList<RayObject> seg = new ArrayList<RayObject>();
+		seg.add(null);
+		for(RayObject obj:linkedChain) {
+			if(obj.canTransposeRay()) {
+				segChain.add(seg);
+				seg = new ArrayList<RayObject>();
+			}
+			seg.add(obj);
+		}
+		segChain.add(seg);
+		return segChain;
+	}
 
 	private void renderLine(Graphics g, float x1, float y1, float x2, float y2, Color color) {
 		g.setColor(color);
