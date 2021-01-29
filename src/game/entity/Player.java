@@ -15,14 +15,14 @@ import utils.Vector;
 import utils.collision.Collisions;
 
 public class Player extends Entity{
-	
+
 	private final static float PLAYER_WIDTH = 0.4f;
 	private final static float PLAYER_HEIGHT = 0.4f;
-	
+
 	private final static float PLAYER_MOVE_SPEED = 3.7f;
 
 	private RayEmitter rayEmitter;
-	
+
 	public Player(float x, float y, Handler handler) {
 		super(x, y, handler);
 		hitbox = new Rectangle2D.Float(0, 0, PLAYER_WIDTH, PLAYER_HEIGHT);
@@ -36,19 +36,19 @@ public class Player extends Entity{
 		rayEmitter.setY(y+PLAYER_HEIGHT/2);
 		rayEmitter.setRayObjects(handler.getWorld().getRayObjects());
 		rayEmitter.updateRays();
-		handler.getCamera().focusOnEntity(this, 0.3f);
+		handler.getCamera().focusOnEntity(this, 0f);
 	}
-	
+
 	@Override
 	public void render(Graphics g) {
 		rayEmitter.render(g);
 		g.setColor(new Color(0, 255, 0));
 		g.fillRect((int)(x*handler.getCamera().getScale()-handler.getCamera().getXoff()), 
-				   (int)(y*handler.getCamera().getScale()-handler.getCamera().getYoff()), 
-				   (int)(PLAYER_WIDTH*handler.getCamera().getScale()), 
-				   (int)(PLAYER_HEIGHT*handler.getCamera().getScale()));
+				(int)(y*handler.getCamera().getScale()-handler.getCamera().getYoff()), 
+				(int)(PLAYER_WIDTH*handler.getCamera().getScale()), 
+				(int)(PLAYER_HEIGHT*handler.getCamera().getScale()));
 	}
-	
+
 	private void move() {
 		Vector vel = new Vector(0, 0);
 		if(handler.getKeyManager().isKeyPressed(Binds.LEFT)) {
@@ -62,9 +62,10 @@ public class Player extends Entity{
 		}
 		vel.normalise();
 		vel.mult((float) (PLAYER_MOVE_SPEED/handler.getCurrentFps()));
-		
+		vel = new Vector((float) (vel.getX()*Math.cos(handler.getWorld().getRotation())-vel.getY()*Math.sin(handler.getWorld().getRotation())),
+				(float) (vel.getX()*Math.sin(handler.getWorld().getRotation())+vel.getY()*Math.cos(handler.getWorld().getRotation())));
 		//collisions
-		
+
 		//portal collisions
 		ArrayList<RayObject>rayObjects = handler.getWorld().getRayObjects();
 		float tx = 0, ty = 0;
@@ -82,17 +83,18 @@ public class Player extends Entity{
 					float portalLength = Func.dist(portalObject.getX1(), portalObject.getY1(), portalObject.getX2(), portalObject.getY2());
 					float fromCollision = Func.dist(portalObject.getX1(), portalObject.getY1(), collisionPoint.getX(), collisionPoint.getY());
 					float collisionPercent = fromCollision/portalLength;
-					
+
 					float exitdx = linkedPortal.getX2()-linkedPortal.getX1();
 					float exitdy = linkedPortal.getY2()-linkedPortal.getY1();
 					Vector exitPoint = new Vector(linkedPortal.getX1()+exitdx*collisionPercent, linkedPortal.getY1()+exitdy*collisionPercent);
+	
+					vel = new Vector((float) (vel.getX()*Math.cos(deltaAngle)-vel.getY()*Math.sin(deltaAngle)),
+									 (float) (vel.getX()*Math.sin(deltaAngle)+vel.getY()*Math.cos(deltaAngle)));
 
-					vel.setX((float) (vel.getX()*Math.cos(deltaAngle)-vel.getY()*Math.sin(deltaAngle)));
-					vel.setY((float) (vel.getX()*Math.sin(deltaAngle)+vel.getY()*Math.cos(deltaAngle)));
-					
 					tx = exitPoint.getX()-PLAYER_WIDTH/2;
 					ty = exitPoint.getY()-PLAYER_HEIGHT/2;
 					collided = true;
+					handler.getWorld().setRotation(handler.getWorld().getRotation()+deltaAngle);
 				}
 			}else {
 				continue;
@@ -103,9 +105,7 @@ public class Player extends Entity{
 			x = tx;
 			y = ty;
 		}
-		
 		x+=vel.getX();
 		y+=vel.getY();
 	}
-	
 }

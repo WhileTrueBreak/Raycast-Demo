@@ -30,9 +30,9 @@ public class Ray {
 	private ArrayList<RayObject>rayObjects;
 
 
-	float x1, y1, x2, y2, theta;
+	private float x1, y1, x2, y2, theta;
 	//current iteration of the ray
-	int layer;
+	private int layer;
 	//first ray initialization of the ray
 	public Ray(Handler handler, float x,  float y, float theta, float dist){
 		this.handler = handler;
