@@ -4,6 +4,7 @@ import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.List;
 import java.util.ArrayList;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -35,43 +36,38 @@ public class RayEmitter {
 		float preceivedWidth = handler.getWidth()/handler.getCamera().getScale();
 		float preceivedHeight = handler.getHeight()/handler.getCamera().getScale();
 
+		//multitreading variables
 		int MAX_T = 4;
-
 		ExecutorService pool = Executors.newFixedThreadPool(MAX_T); 
-
+		ArrayList<Callable<Object>> todo = new ArrayList<Callable<Object>>(1);
 		ArrayList<RayThread> rts = new ArrayList<RayThread>();
+		
 		rays = new ArrayList<Ray>();
+		
 		for(float i = 0;i < 360;i+=1) {
 			Ray ray = new Ray(handler, x, y, (float) (i*Math.PI/180), (float)Math.sqrt(preceivedWidth*preceivedWidth+preceivedHeight*preceivedHeight));
 			ray.setRayObjects(rayObjects);
 			RayThread rt = new RayThread(ray);
 			rts.add(rt);
-			pool.execute(rt);
+			todo.add(Executors.callable(rt));
 		}
-		pool.shutdown();
-		while(!pool.isTerminated()) {}
+		try {
+			pool.invokeAll(todo);
+		} catch (InterruptedException e) {}
 		for(RayThread rt:rts) {
 			rays.add(rt.getRay());
 		}
-		pool = Executors.newFixedThreadPool(MAX_T); 
+		
+		//reset for next pass
+		todo = new ArrayList<Callable<Object>>(1);
 		rts = new ArrayList<RayThread>();
+		
 		//second pass
 		ArrayList<ArrayList<RayObject>> prevChain = segChain(rays.get(rays.size()-1).getRayEndChain());
 		ArrayList<ArrayList<RayObject>> currentChain = new ArrayList<ArrayList<RayObject>>();
 		for(int i = 0;i < rays.size();i++) {
-			boolean notMatching = false;
 			currentChain = segChain(rays.get(i).getRayEndChain());
-			if(prevChain.size()!=currentChain.size()) {
-				notMatching = true;
-			}else {
-				for(int j = 0;j < prevChain.size();j++) {
-					if(!(currentChain.get(j).containsAll(prevChain.get(j)) && prevChain.get(j).containsAll(currentChain.get(j)))) {
-						notMatching = true;
-						break;
-					}
-				}
-			}
-			if(notMatching) {
+			if(checkIfRayChainMatch(prevChain, currentChain)) {
 				float inc = (float) (Math.PI/180)/10;
 				float startAngle = rays.get(i==0?rays.size()-1:i-1).getTheta();
 				float endAngle = rays.get(i).getTheta();
@@ -80,30 +76,34 @@ public class RayEmitter {
 					ray.setRayObjects(rayObjects);
 					RayThread rt = new RayThread(ray);
 					rts.add(rt);
-					pool.execute(rt);
+					todo.add(Executors.callable(rt));
 				}
 			}
 			prevChain = segChain(rays.get(i).getRayEndChain());
 		}
-		pool.shutdown();
-		while(!pool.isTerminated()) {}
+		try {
+			pool.invokeAll(todo);
+		} catch (InterruptedException e) {}
 		for(RayThread rt:rts) {
 			rays.add(rt.getRay());
 		}
+		pool.shutdown();
 		//sort by angle
 		rays.sort(new AngleSorter());
-		//		rays = new ArrayList<Ray>();
-		//		for(float i = 0;i < 360;i+=1f) {
-		//			Ray ray = new Ray(handler, x, y, (float) (i*Math.PI/180), 100);
-		//			ray.setRayObjects(rayObjects);
-		//			ray.update();
-		//			rays.add(ray);
-		//		}
-
-		//		Ray ray = new Ray(handler, x, y, (float) (100*Math.PI/180), 100);
-		//		ray.setRayObjects(rayObjects);
-		//		ray.update();
-		//		rays.add(ray);
+		
+	}
+	
+	public boolean checkIfRayChainMatch(ArrayList<ArrayList<RayObject>> chain1, ArrayList<ArrayList<RayObject>> chain2) {
+		if(chain1.size()!=chain2.size()) {
+			return true;
+		}else {
+			for(int j = 0;j < chain1.size();j++) {
+				if(!(chain2.get(j).containsAll(chain1.get(j)) && chain1.get(j).containsAll(chain2.get(j)))) {
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 
 	public void render(Graphics g) {

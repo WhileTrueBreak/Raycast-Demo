@@ -36,7 +36,8 @@ public class Player extends Entity{
 		rayEmitter.setY(y+PLAYER_HEIGHT/2);
 		rayEmitter.setRayObjects(handler.getWorld().getRayObjects());
 		rayEmitter.updateRays();
-		handler.getCamera().focusOnEntity(this, 0f);
+		//handler.getCamera().focusOnEntity(this, 1.1f);
+		handler.getCamera().focusOnPoint(x+PLAYER_WIDTH/2, y+PLAYER_HEIGHT/2, 0.1f);
 	}
 
 	@Override
@@ -65,10 +66,22 @@ public class Player extends Entity{
 		vel = new Vector((float) (vel.getX()*Math.cos(handler.getWorld().getRotation())-vel.getY()*Math.sin(handler.getWorld().getRotation())),
 				(float) (vel.getX()*Math.sin(handler.getWorld().getRotation())+vel.getY()*Math.cos(handler.getWorld().getRotation())));
 		//collisions
-
+		vel = collisions(vel);
 		//portal collisions
+		vel = portalCollisions(vel);
+		x+=vel.getX();
+		y+=vel.getY();
+	}
+	
+	private Vector collisions(Vector vel) {
+		
+		return vel;
+	}
+	
+	private Vector portalCollisions(Vector vel) {
 		ArrayList<RayObject>rayObjects = handler.getWorld().getRayObjects();
 		float tx = 0, ty = 0;
+		float portalAngle = 0;
 		boolean collided = false;
 		for(RayObject obj:rayObjects) {
 			if(obj instanceof RayPortal) {
@@ -94,6 +107,7 @@ public class Player extends Entity{
 					tx = exitPoint.getX()-PLAYER_WIDTH/2;
 					ty = exitPoint.getY()-PLAYER_HEIGHT/2;
 					collided = true;
+					portalAngle = deltaAngle;
 					handler.getWorld().setRotation(handler.getWorld().getRotation()+deltaAngle);
 				}
 			}else {
@@ -101,11 +115,32 @@ public class Player extends Entity{
 			}
 		}
 		if(collided) {
-			handler.getCamera().move((tx-x)*handler.getCamera().getScale(), (ty-y)*handler.getCamera().getScale());
-			x = tx;
-			y = ty;
+			//move camera to player teleported location relative to previous location
+			float camPlayerXoff, camPlayerYoff;
+			float relPlayerX, relPlayerY;
+			relPlayerX = (x+(float)PLAYER_WIDTH/2)*handler.getCamera().getScale() - (float)handler.getWidth ()/2;
+			relPlayerY = (y+(float)PLAYER_HEIGHT/2)*handler.getCamera().getScale() - (float)handler.getHeight()/2;
+			camPlayerXoff = handler.getCamera().getXoff() - relPlayerX;
+			camPlayerYoff = handler.getCamera().getYoff() - relPlayerY;
+			//rotate for portal
+			float theta = handler.getWorld().getRotation();
+//			System.out.println("[Player]\tangle||"+String.valueOf(theta));
+//			System.out.println("[Player]\tcam-ply1||"+String.valueOf(camPlayerXoff)+","+String.valueOf(camPlayerYoff));
+			camPlayerXoff = (float)(camPlayerXoff*Math.cos(theta)-camPlayerYoff*Math.sin(theta));
+			camPlayerYoff = (float)(camPlayerXoff*Math.sin(theta)+camPlayerYoff*Math.cos(theta));
+			
+//			System.out.println("[Player]\tcam-ply2||"+String.valueOf(camPlayerXoff)+","+String.valueOf(camPlayerYoff));
+			
+			
+			handler.getCamera().focusOnPoint(tx+PLAYER_WIDTH/2, ty+PLAYER_HEIGHT/2, 0);
+			handler.getCamera().move(camPlayerXoff, camPlayerYoff);
+
+			handler.getCamera().setRot(handler.getWorld().getRotation());
+			
+			this.x = tx;
+			this.y = ty;
+			
 		}
-		x+=vel.getX();
-		y+=vel.getY();
+		return vel;
 	}
 }

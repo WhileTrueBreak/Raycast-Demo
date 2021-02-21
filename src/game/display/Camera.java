@@ -7,36 +7,42 @@ public class Camera {
 	
 	private Handler handler;
 	
+	//relative to top left (0,0)
 	private float xoff, yoff;
+	private float rot;
 	private float scale;
+	
+	private float PoFx, PoFy;
 	
 	public Camera(Handler handler, float xoff, float yoff) {
 		this.handler = handler;
 		this.xoff = xoff;
 		this.yoff = yoff;
 		this.scale = 1;
+		this.rot = 0;
 	}
 	
 	public void focusOnEntity(Entity e, float spring) {
 		float cameraSpring = spring;
-		float setX = (e.getX()+(float)e.getHitbox().getWidth()/2)*scale - handler.getWidth()/2;
-		float setY = (e.getY()+(float)e.getHitbox().getHeight()/2)*scale - handler.getHeight()/2;
+		PoFx = (e.getX()+(float)e.getHitbox().getWidth()/2)*scale - handler.getWidth()/2;
+		PoFy = (e.getY()+(float)e.getHitbox().getHeight()/2)*scale - handler.getHeight()/2;
 		if(cameraSpring <= 0)
-			move((setX-xoff), (setY-yoff));
-		else
-			move(((setX-xoff)/cameraSpring)/(float)handler.getCurrentFps(), 
-					((setY-yoff)/cameraSpring)/(float)handler.getCurrentFps());
+			move((PoFx-xoff), (PoFy-yoff));
+		else {
+			move(((PoFx-xoff)/cameraSpring)/(float)handler.getCurrentFps(), 
+					((PoFy-yoff)/cameraSpring)/(float)handler.getCurrentFps());
+		}
 	}
 	
-	public void focusOnPoint(int x, int y, float spring) {
+	public void focusOnPoint(float x, float y, float spring) {
 		float cameraSpring = spring;
-		float setX = x*scale - handler.getWidth()/2;
-		float setY = y*scale - handler.getHeight()/2;
+		PoFx = x*scale - handler.getWidth()/2;
+		PoFy = y*scale - handler.getHeight()/2;
 		if(cameraSpring <= 0)
-			move((setX-xoff), (setY-yoff));
+			move((PoFx-xoff), (PoFy-yoff));
 		else
-			move(((setX-xoff)/cameraSpring)/(float)handler.getCurrentFps(), 
-					((setY-yoff)/cameraSpring)/(float)handler.getCurrentFps());
+			move(((PoFx-xoff)/cameraSpring)/(float)handler.getCurrentFps(), 
+					((PoFy-yoff)/cameraSpring)/(float)handler.getCurrentFps());
 	}
 	
 	public void move(float amtx, float amty) {
@@ -45,7 +51,9 @@ public class Camera {
 	}
 
 	public float getXoff() {
-		return xoff;
+		float dx = xoff-PoFx;
+		float dy = yoff-PoFy;
+		return (float)(dx*Math.cos(rot)-dy*Math.sin(rot))+PoFx;
 	}
 
 	public void setXoff(int xoff) {
@@ -53,7 +61,9 @@ public class Camera {
 	}
 
 	public float getYoff() {
-		return yoff;
+		float dx = xoff-PoFx;
+		float dy = yoff-PoFy;
+		return (float)(dx*Math.sin(rot)+dy*Math.cos(rot))+PoFy;
 	}
 
 	public void setYoff(int yoff) {
@@ -66,6 +76,14 @@ public class Camera {
 	
 	public void setScale(float scale) {
 		this.scale = scale;
+	}
+
+	public float getRot() {
+		return rot;
+	}
+
+	public void setRot(float rot) {
+		this.rot = rot;
 	}
 	
 }

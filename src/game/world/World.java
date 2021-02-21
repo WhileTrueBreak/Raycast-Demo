@@ -88,10 +88,15 @@ public class World {
 	}
 
 	public void render(Graphics g) {
-//		for(RayObject obj:rayObjects) {
-//			obj.render(g);
-//		}
+		
+		for(RayObject obj:rayObjects) {
+			if(obj instanceof RayPortal)
+				obj.render(g);
+		}
 		player.render(g);
+		//render center
+		g.setColor(new Color(0,0,0));
+		g.drawOval(handler.getWidth()/2-2, handler.getHeight()/2-2, 4, 4);
 	}
 
 	public ArrayList<RayObject> getRayObjects() {
