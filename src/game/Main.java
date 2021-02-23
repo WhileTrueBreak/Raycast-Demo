@@ -1,6 +1,8 @@
 package game;
 
 import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.image.BufferStrategy;
 
 import game.display.Camera;
@@ -75,6 +77,9 @@ public class Main implements Runnable{
 			return;
 		}
 		g = bs.getDrawGraphics();
+		Graphics2D g2 = (Graphics2D) g;
+		g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+			    RenderingHints.VALUE_ANTIALIAS_ON);
 		g.clearRect(0, 0, width, height);
 		// Draw Crap
 		currentState.render(g);
