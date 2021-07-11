@@ -16,8 +16,8 @@ public class Collisions {
 		float uB = ((x2-x1)*(y1-y3) - (y2-y1)*(x1-x3)) / ((y4-y3)*(x2-x1) - (x4-x3)*(y2-y1));
 		if (uA >= 0 && uA <= 1 && uB >= 0 && uB <= 1) {
 			float intersectionX = x1 + (uA * (x2-x1));
-		    float intersectionY = y1 + (uA * (y2-y1));
-		    return new Vector(intersectionX, intersectionY);
+			float intersectionY = y1 + (uA * (y2-y1));
+			return new Vector(intersectionX, intersectionY);
 		}
 		return null;
 	}
@@ -177,5 +177,39 @@ public class Collisions {
 			}
 		}
 		return collision;
+	}
+	public static boolean polyLine(Vector[] vertices, float x1, float y1, float x2, float y2) {
+
+		if(polygonPoint(vertices, x1, y1)) return true;
+		if(polygonPoint(vertices, x2, y2)) return true;
+		
+		// go through each of the vertices, plus the next
+		// vertex in the list
+		int next = 0;
+		for (int current=0; current<vertices.length; current++) {
+
+			// get next vertex in list
+			// if we've hit the end, wrap around to 0
+			next = current+1;
+			if (next == vertices.length) next = 0;
+
+			// get the PVectors at our current position
+			// extract X/Y coordinates from each
+			float x3 = vertices[current].getX();
+			float y3 = vertices[current].getY();
+			float x4 = vertices[next].getX();
+			float y4 = vertices[next].getY();
+
+			// do a Line/Line comparison
+			// if true, return 'true' immediately and
+			// stop testing (faster)
+			boolean hit = lineLine(x1, y1, x2, y2, x3, y3, x4, y4);
+			if (hit) {
+				return true;
+			}
+		}
+
+		// never got a hit
+		return false;
 	}
 }

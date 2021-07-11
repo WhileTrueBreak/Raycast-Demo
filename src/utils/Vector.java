@@ -60,5 +60,8 @@ public class Vector {
 		return new Vector(v1.getX()*n, v1.getY()*n);
 	}
 	
+	public String toString() {
+		return "("+this.x+","+this.y+")";
+	}
 	
 }

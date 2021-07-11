@@ -8,8 +8,10 @@ import java.util.ArrayList;
 import game.Handler;
 import game.inputs.Binds;
 import game.raycasting.RayEmitter;
+import game.raycasting.object.RayMirror;
 import game.raycasting.object.RayObject;
 import game.raycasting.object.RayPortal;
+import game.raycasting.object.RayWall;
 import utils.Func;
 import utils.Vector;
 import utils.collision.Collisions;
@@ -69,15 +71,129 @@ public class Player extends Entity{
 		vel = collisions(vel);
 		//portal collisions
 		vel = portalCollisions(vel);
+		inWall();
 		x+=vel.getX();
 		y+=vel.getY();
 	}
-	
+
 	private Vector collisions(Vector vel) {
-		
+		//get polygon points
+		//Vector[] points = getHitboxPolygon(vel);
+		//cut polygon with portal
+		Vector[][] points = cutPolygon(getHitboxPolygon(vel));
+		ArrayList<RayObject> collisions = allCollisions(points);
+		ArrayList<RayObject> done = new ArrayList<RayObject>();
+		while(collisions.size()!=0) {
+			System.out.println(collisions);
+			RayObject obj = collisions.get(0);
+			if(done.contains(obj)) {
+				vel.mult(0);
+				break;
+			}
+			Vector objV = new Vector(obj.getX2()-obj.getX1(),obj.getY2()-obj.getY1());
+			objV.normalise();
+			float dot = objV.getX()*vel.getX()+objV.getY()*vel.getY();
+			vel = Vector.mult(objV, dot);
+			done.add(obj);
+			points = cutPolygon(getHitboxPolygon(vel));
+			collisions.clear();
+			collisions = allCollisions(points);
+		}
 		return vel;
 	}
 	
+	private Vector[][] cutPolygon(Vector[] points){
+		//TODO cut polygon with portal
+		//move cut portion to other side of portal
+		Vector[][] shapes = {points};
+		return shapes;
+	}
+
+	private ArrayList<RayObject> allCollisions(Vector[][] points){
+		ArrayList<RayObject>out = new ArrayList<RayObject>();
+		ArrayList<RayObject>rayObjects = handler.getWorld().getRayObjects();
+		for(RayObject obj:rayObjects) {
+			for(int i = 0;i < points.length;i++) {
+				if(obj instanceof RayWall || obj instanceof RayMirror) {
+					if(Collisions.polyLine(points[i], obj.getX1(), obj.getY1(), obj.getX2(), obj.getY2())) {
+						out.add(obj);
+					}
+				}
+			}
+		}
+		//TODO: sort by type of collision
+		//collisions on line end handled last
+		//or fix corner collisions (will do anyways)
+		return out;
+	}
+
+	private void inWall(){
+		ArrayList<RayObject>rayObjects = handler.getWorld().getRayObjects();
+		for(RayObject obj:rayObjects) {
+			if(obj instanceof RayWall || obj instanceof RayMirror) {
+				if(Collisions.lineRect(obj.getX1(), obj.getY1(), obj.getX2(), obj.getY2(), 
+						(float)hitbox.getX()+this.x, (float)hitbox.getY()+this.y, (float)hitbox.getWidth(), (float)hitbox.getHeight())) {
+					System.out.println("in wall");
+				}
+			}
+		}
+	}
+
+	private Vector[] getHitboxPolygon(Vector vel) {
+		//creates polygon stretched in the direction of vel for better collisions
+		
+		//get diagonals
+		Vector diagT = new Vector((float)(hitbox.getMaxX()-hitbox.getMinX()),(float)(hitbox.getMaxY()-hitbox.getMinY()));
+		Vector diagB = new Vector((float)(hitbox.getMaxX()-hitbox.getMinX()),(float)(hitbox.getMinY()-hitbox.getMaxY()));
+		//get polygon points
+		Vector[] points = new Vector[6];
+		//get dot products
+		float dotT = diagT.getX()*vel.getX()+diagT.getY()*vel.getY();
+		float dotB = diagB.getX()*vel.getX()+diagB.getY()*vel.getY();
+		//get other two points
+		if(dotT<dotB) {
+			if(dotB>0) {
+				points[1] = new Vector((float)hitbox.getMinX(),(float)hitbox.getMinY());
+				points[2] = new Vector((float)hitbox.getMinX()+vel.getX(),(float)hitbox.getMinY()+vel.getY());
+				points[4] = new Vector((float)hitbox.getMaxX()+vel.getX(),(float)hitbox.getMaxY()+vel.getY());
+				points[5] = new Vector((float)hitbox.getMaxX(),(float)hitbox.getMaxY());
+
+				points[0] = new Vector((float)hitbox.getMinX(),(float)hitbox.getMaxY());
+				points[3] = new Vector((float)hitbox.getMaxX()+vel.getX(),(float)hitbox.getMinY()+vel.getY());
+			}else {
+				points[5] = new Vector((float)hitbox.getMinX(),(float)hitbox.getMinY());
+				points[4] = new Vector((float)hitbox.getMinX()+vel.getX(),(float)hitbox.getMinY()+vel.getY());
+				points[2] = new Vector((float)hitbox.getMaxX()+vel.getX(),(float)hitbox.getMaxY()+vel.getY());
+				points[1] = new Vector((float)hitbox.getMaxX(),(float)hitbox.getMaxY());
+
+				points[0] = new Vector((float)hitbox.getMaxX(),(float)hitbox.getMinY());
+				points[3] = new Vector((float)hitbox.getMinX()+vel.getX(),(float)hitbox.getMaxY()+vel.getY());
+			}
+		}else {
+			if(dotT>0) {
+				points[1] = new Vector((float)hitbox.getMaxX(),(float)hitbox.getMinY());
+				points[2] = new Vector((float)hitbox.getMaxX()+vel.getX(),(float)hitbox.getMinY()+vel.getY());
+				points[4] = new Vector((float)hitbox.getMinX()+vel.getX(),(float)hitbox.getMaxY()+vel.getY());
+				points[5] = new Vector((float)hitbox.getMinX(),(float)hitbox.getMaxY());
+
+				points[0] = new Vector((float)hitbox.getMinX(),(float)hitbox.getMinY());
+				points[3] = new Vector((float)hitbox.getMaxX()+vel.getX(),(float)hitbox.getMaxY()+vel.getY());
+			}else {
+				points[5] = new Vector((float)hitbox.getMaxX(),(float)hitbox.getMinY());
+				points[4] = new Vector((float)hitbox.getMaxX()+vel.getX(),(float)hitbox.getMinY()+vel.getY());
+				points[2] = new Vector((float)hitbox.getMinX()+vel.getX(),(float)hitbox.getMaxY()+vel.getY());
+				points[1] = new Vector((float)hitbox.getMinX(),(float)hitbox.getMaxY());
+
+				points[0] = new Vector((float)hitbox.getMaxX(),(float)hitbox.getMaxY());
+				points[3] = new Vector((float)hitbox.getMinX()+vel.getX(),(float)hitbox.getMinY()+vel.getY());
+			}
+		}
+		for(int i = 0;i < points.length;i++) {
+			points[i].add(new Vector(this.x, this.y));
+		}
+		return points;
+	}
+
 	private Vector portalCollisions(Vector vel) {
 		ArrayList<RayObject>rayObjects = handler.getWorld().getRayObjects();
 		float tx = 0, ty = 0;
@@ -100,9 +216,9 @@ public class Player extends Entity{
 					float exitdx = linkedPortal.getX2()-linkedPortal.getX1();
 					float exitdy = linkedPortal.getY2()-linkedPortal.getY1();
 					Vector exitPoint = new Vector(linkedPortal.getX1()+exitdx*collisionPercent, linkedPortal.getY1()+exitdy*collisionPercent);
-	
+
 					vel = new Vector((float) (vel.getX()*Math.cos(deltaAngle)-vel.getY()*Math.sin(deltaAngle)),
-									 (float) (vel.getX()*Math.sin(deltaAngle)+vel.getY()*Math.cos(deltaAngle)));
+							(float) (vel.getX()*Math.sin(deltaAngle)+vel.getY()*Math.cos(deltaAngle)));
 
 					tx = exitPoint.getX()-PLAYER_WIDTH/2;
 					ty = exitPoint.getY()-PLAYER_HEIGHT/2;
@@ -124,22 +240,22 @@ public class Player extends Entity{
 			camPlayerYoff = handler.getCamera().getYoff() - relPlayerY;
 			//rotate for portal
 			float theta = handler.getWorld().getRotation();
-//			System.out.println("[Player]\tangle||"+String.valueOf(theta));
-//			System.out.println("[Player]\tcam-ply1||"+String.valueOf(camPlayerXoff)+","+String.valueOf(camPlayerYoff));
+			//			System.out.println("[Player]\tangle||"+String.valueOf(theta));
+			//			System.out.println("[Player]\tcam-ply1||"+String.valueOf(camPlayerXoff)+","+String.valueOf(camPlayerYoff));
 			camPlayerXoff = (float)(camPlayerXoff*Math.cos(theta)-camPlayerYoff*Math.sin(theta));
 			camPlayerYoff = (float)(camPlayerXoff*Math.sin(theta)+camPlayerYoff*Math.cos(theta));
-			
-//			System.out.println("[Player]\tcam-ply2||"+String.valueOf(camPlayerXoff)+","+String.valueOf(camPlayerYoff));
-			
-			
+
+			//			System.out.println("[Player]\tcam-ply2||"+String.valueOf(camPlayerXoff)+","+String.valueOf(camPlayerYoff));
+
+
 			handler.getCamera().focusOnPoint(tx+PLAYER_WIDTH/2, ty+PLAYER_HEIGHT/2, 0);
 			handler.getCamera().move(camPlayerXoff, camPlayerYoff);
 
 			handler.getCamera().setRot(handler.getWorld().getRotation());
-			
+
 			this.x = tx;
 			this.y = ty;
-			
+
 		}
 		return vel;
 	}
