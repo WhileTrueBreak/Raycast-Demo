@@ -6,11 +6,12 @@ import java.awt.Graphics;
 import game.Handler;
 
 public class RayWall extends RayObject{
-
+	
 	private Color color;
 	
 	public RayWall(Handler handler, float x1, float y1, float x2, float y2, Color color) {
 		super(handler, x1, y1, x2, y2);
+		isSolid = true;
 		this.color = color;
 	}
 

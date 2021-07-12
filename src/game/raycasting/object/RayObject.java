@@ -5,6 +5,8 @@ import java.awt.Graphics;
 import game.Handler;
 
 public abstract class RayObject {
+	
+	public boolean isSolid = false;
 
 	protected Handler handler;
 	protected float x1, y1, x2, y2;

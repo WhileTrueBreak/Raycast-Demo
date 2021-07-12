@@ -8,9 +8,10 @@ import game.Handler;
 public class RayPass extends RayObject{
 
 	private Color color;
-
+	
 	public RayPass(Handler handle, float x1, float y1, float x2, float y2, Color color) {
 		super(handle, x1, y1, x2, y2);
+		isSolid = false;
 		this.color = color;
 	}
 

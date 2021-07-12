@@ -48,6 +48,10 @@ public class Vector {
 		}
 	}
 	
+	public float magnitude() {
+		return (float)Math.sqrt(x*x+y*y);
+	}
+	
 	public static Vector sub(Vector v1, Vector v2) {
 		return new Vector(v1.getX()-v2.getX(), v1.getY()-v2.getY());
 	}

@@ -24,8 +24,8 @@ public class Camera {
 	
 	public void focusOnEntity(Entity e, float spring) {
 		float cameraSpring = spring;
-		PoFx = (e.getX()+(float)e.getHitbox().getWidth()/2)*scale - handler.getWidth()/2;
-		PoFy = (e.getY()+(float)e.getHitbox().getHeight()/2)*scale - handler.getHeight()/2;
+		PoFx = (e.getX()+(float)e.getHitbox().getBoundingRect().getWidth()/2)*scale - handler.getWidth()/2;
+		PoFy = (e.getY()+(float)e.getHitbox().getBoundingRect().getHeight()/2)*scale - handler.getHeight()/2;
 		if(cameraSpring <= 0)
 			move((PoFx-xoff), (PoFy-yoff));
 		else {

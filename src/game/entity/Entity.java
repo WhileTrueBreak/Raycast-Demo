@@ -1,15 +1,17 @@
 package game.entity;
 
 import java.awt.Graphics;
-import java.awt.geom.Rectangle2D;
+import java.util.ArrayList;
 
 import game.Handler;
+import utils.Polygon;
 
 public abstract class Entity {
 	
 	protected Handler handler;
 	
-	protected Rectangle2D hitbox;
+	protected Polygon hitbox;
+	protected int hitboxRotation = 0;
 	
 	protected float x, y;
 	
@@ -31,7 +33,7 @@ public abstract class Entity {
 		return y;
 	}
 	
-	public Rectangle2D getHitbox() {
+	public Polygon getHitbox() {
 		return hitbox;
 	}
 	

@@ -27,7 +27,7 @@ public class World {
 		this.handler = handler;
 		handler.setWorld(this);
 		rayObjects = new ArrayList<RayObject>();
-		player = new Player(2, 2, handler);
+		player = new Player(1, 1, handler);
 
 //		RayPortal rp1 = new RayPortal(handler, 0, 0, 0, 4);
 //		rayObjects.add(rp1);
@@ -71,8 +71,8 @@ public class World {
 		}
 		player.render(g);
 		//render center
-		g.setColor(new Color(0,0,0));
-		g.drawOval(handler.getWidth()/2-2, handler.getHeight()/2-2, 4, 4);
+		//g.setColor(new Color(0,0,0));
+		//g.drawOval(handler.getWidth()/2-2, handler.getHeight()/2-2, 4, 4);
 	}
 
 	public ArrayList<RayObject> getRayObjects() {
