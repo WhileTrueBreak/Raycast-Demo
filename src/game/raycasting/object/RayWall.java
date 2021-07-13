@@ -14,7 +14,7 @@ public class RayWall extends RayObject{
 		isSolid = true;
 		this.color = color;
 	}
-
+	
 	@Override
 	public void render(Graphics g) {
 		g.setColor(color);
@@ -23,12 +23,13 @@ public class RayWall extends RayObject{
 				   (int)(x2*handler.getCamera().getScale()-handler.getCamera().getXoff()), 
 				   (int)(y2*handler.getCamera().getScale()-handler.getCamera().getYoff()));
 	}
-
+	
 	@Override
-	public void update() {}
-
+	public void update() {
+	}
+	
 	public Color getColor() {
 		return color;
 	}
-
+	
 }

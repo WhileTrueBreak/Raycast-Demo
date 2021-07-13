@@ -80,9 +80,10 @@ public class Player extends Entity{
 		vel = collisions(vel);
 		//portal collisions
 		vel = portalCollisions(vel);
+		//logging
 		long et = System.nanoTime();
 		long time = (et-st)/1000;
-		if(time>1000) {
+		if(time>100) {
 			System.out.println("[Player]\tCollision time: "+time+"us");
 			Logging.dumpLog();
 		}
@@ -129,7 +130,7 @@ public class Player extends Entity{
 	private Tuple3<RayObject, Vector, Float> closestCollisionPoint(Polygon[] polygons, Vector vel){
 		long st = System.nanoTime();
 		int HBC = 0, EPC = 0;
-		HashMap<RayObject, Vector>allCollisions = new HashMap<RayObject, Vector>();
+		HashMap<Vector, RayObject>allCollisions = new HashMap<Vector, RayObject>();
 		ArrayList<RayObject>rayObjects = handler.getWorld().getRayObjects();
 		HashMap<Vector, Float>collisions = new HashMap<Vector, Float>();
 		for(RayObject obj:rayObjects) {
@@ -148,7 +149,7 @@ public class Player extends Entity{
 								float dist = Func.dist(collisionPoint.getX(), collisionPoint.getY(), vertex.getX(), vertex.getY());
 								Vector slide = new Vector(obj.getX2()-obj.getX1(), obj.getY2()-obj.getY1());
 								collisions.put(slide, dist);
-								allCollisions.put(obj, slide);
+								allCollisions.put(slide, obj);
 							}
 						}
 						//check endpoint collisions
@@ -162,7 +163,7 @@ public class Player extends Entity{
 								float dist = Func.dist(collisionPoint1.getX(), collisionPoint1.getY(), obj.getX1(), obj.getY1());
 								Vector slide = new Vector(vertices[j].getX()-tail.getX(), vertices[j].getY()-tail.getY());
 								collisions.put(slide, dist);
-								allCollisions.put(obj, slide);
+								allCollisions.put(slide, obj);
 							}
 							//check endpoint 2
 							Vector collisionPoint2 = Collisions.lineLineVector(tail.getX(), tail.getY(), vertices[j].getX(), vertices[j].getY(), 
@@ -172,34 +173,31 @@ public class Player extends Entity{
 								float dist = Func.dist(collisionPoint2.getX(), collisionPoint2.getY(), obj.getX2(), obj.getY2());
 								Vector slide = new Vector(vertices[j].getX()-tail.getX(), vertices[j].getY()-tail.getY());
 								collisions.put(slide, dist);
-								allCollisions.put(obj, slide);
+								allCollisions.put(slide, obj);
 							}
 							tail = vertices[j];
 						}
 					}
-
 				}
 			}
 		}
-
 		float furtherest = 0;
 		Vector bestSlide = null;
 		RayObject collisionObj = null;
-		for(RayObject rayObj:allCollisions.keySet()) {
-			Vector slide = allCollisions.get(rayObj);
-			float dist = collisions.get(slide);
+		
+		for(Vector sl:allCollisions.keySet()) {
+			RayObject obj = allCollisions.get(sl);
+			float dist = collisions.get(sl);
 			if(dist>furtherest) {
 				furtherest = dist;
-				bestSlide = slide;
-				collisionObj = rayObj;
+				bestSlide = sl;
+				collisionObj = obj;
 			}
 		}
+		
 		long et = System.nanoTime();
 		Logging.addLog("HBC/EPC Checks: " + HBC + "/" + EPC);
 		Logging.addLog("all collisions: "+(et-st)/1000+"us");
-		//TODO: sort by type of collision
-		//collisions on line end handled last
-		//or fix corner collisions (will do anyways)
 		if(bestSlide == null||collisionObj==null)
 			return null;
 		return new Tuple3<RayObject, Vector, Float>(collisionObj, bestSlide, furtherest);
