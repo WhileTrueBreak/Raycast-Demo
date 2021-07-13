@@ -18,6 +18,7 @@ import utils.Logging;
 import utils.Polygon;
 import utils.Vector;
 import utils.collision.Collisions;
+import utils.tuple.Tuple3;
 
 public class Player extends Entity{
 
@@ -73,7 +74,9 @@ public class Player extends Entity{
 		vel.mult((float) (PLAYER_MOVE_SPEED/handler.getCurrentFps()));
 		vel = new Vector((float) (vel.getX()*Math.cos(handler.getWorld().getRotation())-vel.getY()*Math.sin(handler.getWorld().getRotation())),
 				(float) (vel.getX()*Math.sin(handler.getWorld().getRotation())+vel.getY()*Math.cos(handler.getWorld().getRotation())));
+
 		
+		//logging collision times
 		long st = System.nanoTime();
 		//collisions
 		vel = collisions(vel);
@@ -86,7 +89,7 @@ public class Player extends Entity{
 			Logging.dumpLog();
 		}
 		Logging.clearLog();
-		
+
 		inWall();
 		x+=vel.getX();
 		y+=vel.getY();
@@ -96,25 +99,25 @@ public class Player extends Entity{
 		//get polygon points
 		//Vector[] points = getHitboxPolygon(vel);
 		//cut polygon with portal
-		Polygon[] polygons = cutPolygon(getHitboxPolygon(vel));
-		HashMap<RayObject, Vector> collisions = allCollisions(polygons);
+		Polygon[] polygons = cutPolygon(getHitboxNewPos(hitbox, vel));
+		Tuple3<RayObject, Vector, Float> collisionData = closestCollisionPoint(polygons, vel);
 		ArrayList<RayObject> done = new ArrayList<RayObject>();
-		//System.out.println(collisions.size());
-		while(collisions.size()!=0) {
+		while(collisionData != null) {
 			//System.out.println(collisions);
-			RayObject obj = collisions.keySet().iterator().next();
+			RayObject obj = collisionData.getFirst();
 			if(done.contains(obj)) {
 				vel.mult(0);
 				break;
 			}
-			Vector objV = collisions.get(obj);
+			//move dist
+			//change vel
+			Vector objV = collisionData.getSecond();
 			objV.normalise();
 			float dot = objV.getX()*vel.getX()+objV.getY()*vel.getY();
 			vel = Vector.mult(objV, dot);
 			done.add(obj);
-			polygons = cutPolygon(getHitboxPolygon(vel));
-			collisions.clear();
-			collisions = allCollisions(polygons);
+			polygons = cutPolygon(getHitboxNewPos(hitbox, vel));
+			collisionData = closestCollisionPoint(polygons, vel);
 		}
 		return vel;
 	}
@@ -126,32 +129,83 @@ public class Player extends Entity{
 		return polygons;
 	}
 
-	private HashMap<RayObject, Vector> allCollisions(Polygon[] polygons){
+	private Tuple3<RayObject, Vector, Float> closestCollisionPoint(Polygon[] polygons, Vector vel){
 		long st = System.nanoTime();
-		HashMap<RayObject, Vector>out = new HashMap<RayObject, Vector>();
+		int HBC = 0, EPC = 0;
+		HashMap<RayObject, Vector>allCollisions = new HashMap<RayObject, Vector>();
 		ArrayList<RayObject>rayObjects = handler.getWorld().getRayObjects();
+		HashMap<Vector, Float>collisions = new HashMap<Vector, Float>();
 		for(RayObject obj:rayObjects) {
-			for(int i = 0;i < polygons.length;i++) {
-				if(obj.isSolid) {
+			if(obj.isSolid) {
+				for(int i = 0;i < polygons.length;i++) {
+					Vector[] vertices = polygons[i].getVertices();
 					Rectangle2D.Float bound = polygons[i].getBoundingRect();
 					if(Collisions.lineRect(obj.getX1(), obj.getY1(), obj.getX2(), obj.getY2(), 
 							bound.x, bound.y, bound.width, bound.height)) {
-						if(Collisions.polyLine(polygons[i].getVertices(), obj.getX1(), obj.getY1(), obj.getX2(), obj.getY2())) {
-							Vector para = new Vector(obj.getX2()-obj.getX1(), obj.getY2()-obj.getY1());
-							Vector normal = new Vector(1, -para.getX()/para.getY());
-							normal.normalise();
-							out.put(obj, para);
+						//checking hitbox vertex collisions
+						for(Vector vertex:vertices) {
+							Vector collisionPoint = Collisions.lineLineVector(vertex.getX(), vertex.getY(), vertex.getX()-vel.getX(), vertex.getY()-vel.getY(), 
+									obj.getX1(), obj.getY1(), obj.getX2(), obj.getY2());
+							HBC++;
+							if(collisionPoint != null) {
+								float dist = Func.dist(collisionPoint.getX(), collisionPoint.getY(), vertex.getX(), vertex.getY());
+								Vector slide = new Vector(obj.getX2()-obj.getX1(), obj.getY2()-obj.getY1());
+								collisions.put(slide, dist);
+								allCollisions.put(obj, slide);
+							}
+						}
+						//check endpoint collisions
+						Vector tail = vertices[vertices.length-1];
+						for(int j = 0;j < vertices.length;j++) {
+							//check endpoint 1
+							Vector collisionPoint1 = Collisions.lineLineVector(tail.getX(), tail.getY(), vertices[j].getX(), vertices[j].getY(), 
+									obj.getX1(), obj.getY1(), obj.getX1()+vel.getX(), obj.getY1()+vel.getY());
+							EPC++;
+							if(collisionPoint1 != null) {
+								float dist = Func.dist(collisionPoint1.getX(), collisionPoint1.getY(), obj.getX1(), obj.getY1());
+								Vector slide = new Vector(vertices[j].getX()-tail.getX(), vertices[j].getY()-tail.getY());
+								collisions.put(slide, dist);
+								allCollisions.put(obj, slide);
+							}
+							//check endpoint 2
+							Vector collisionPoint2 = Collisions.lineLineVector(tail.getX(), tail.getY(), vertices[j].getX(), vertices[j].getY(), 
+									obj.getX2(), obj.getY2(), obj.getX2()+vel.getX(), obj.getY2()+vel.getY());
+							EPC++;
+							if(collisionPoint2 != null) {
+								float dist = Func.dist(collisionPoint2.getX(), collisionPoint2.getY(), obj.getX2(), obj.getY2());
+								Vector slide = new Vector(vertices[j].getX()-tail.getX(), vertices[j].getY()-tail.getY());
+								collisions.put(slide, dist);
+								allCollisions.put(obj, slide);
+							}
+							tail = vertices[j];
 						}
 					}
+					
 				}
 			}
 		}
+		
+		float furtherest = 0;
+		Vector bestSlide = null;
+		RayObject collisionObj = null;
+		for(RayObject rayObj:allCollisions.keySet()) {
+			Vector slide = allCollisions.get(rayObj);
+			float dist = collisions.get(slide);
+			if(dist>furtherest) {
+				furtherest = dist;
+				bestSlide = slide;
+				collisionObj = rayObj;
+			}
+		}
 		long et = System.nanoTime();
+		Logging.addLog("HBC/EPC Checks: " + HBC + "/" + EPC);
 		Logging.addLog("all collisions: "+(et-st)/1000+"us");
 		//TODO: sort by type of collision
 		//collisions on line end handled last
 		//or fix corner collisions (will do anyways)
-		return out;
+		if(bestSlide == null||collisionObj==null)
+			return null;
+		return new Tuple3<RayObject, Vector, Float>(collisionObj, bestSlide, furtherest);
 	}
 
 	private void inWall(){
@@ -169,12 +223,12 @@ public class Player extends Entity{
 			}
 		}
 	}
-	
+
 	private float getHitboxRotation() {
 		//finds the direction which the vertices follow
 		//+ : anticlockwise
 		//- : clockwise
-		
+
 		Vector[] points = hitbox.getVertices();
 		if(points.length<3) System.out.println("[Player]\t\tHitbox does not have enough vertices: "+Integer.toString(points.length));
 		Vector avgPoint = new Vector(0, 0);
@@ -185,16 +239,29 @@ public class Player extends Entity{
 
 		Vector v1 = Vector.sub(points[0], avgPoint);
 		Vector v2 = Vector.sub(points[1], avgPoint);
-		
+
 		float cross = v1.getX()*v2.getY()-v1.getY()*v2.getX();
 		return cross;
 	}
 
-	private Polygon getHitboxPolygon(Vector vel) {
+	private Polygon getHitboxNewPos(Polygon hitbox, Vector vel) {
+		long st = System.nanoTime();
+		Vector[] hitboxVertices = hitbox.getVertices();
+		Vector[] newPoints = new Vector[hitboxVertices.length];
+		for(int i = 0;i < hitboxVertices.length;i++) {
+			newPoints[i] = Vector.add(hitboxVertices[i], vel);
+			newPoints[i].add(new Vector(this.x, this.y));
+		}
+		long et = System.nanoTime();
+		Logging.addLog("polygon move: "+(et-st)/1000+"us");
+		return new Polygon(newPoints, newPoints.length);
+	}
+
+	private Polygon getHitboxPolygon(Polygon hitbox, Vector vel) {
 
 		long st = System.nanoTime();
 		//creates polygon stretched in the direction of vel for better collisions
-		
+
 		//loop through vertices
 		Vector[] points = hitbox.copyVertices();
 		int[] entryRots = new int[points.length];
@@ -207,7 +274,7 @@ public class Player extends Entity{
 			}
 			tail = points[i];
 		}
-		
+
 		//create polygon
 		ArrayList<Vector> newPoints = new ArrayList<Vector>();
 		for(int i = 0;i < entryRots.length;i++) {
@@ -233,56 +300,56 @@ public class Player extends Entity{
 		long et = System.nanoTime();
 		Logging.addLog("polygon sweep: "+(et-st)/1000+"us");
 		return new Polygon(newPointsArr, newPointsArr.length);
-		
-//		//get diagonals
-//		Vector diagT = new Vector((float)(hitbox.getMaxX()-hitbox.getMinX()),(float)(hitbox.getMaxY()-hitbox.getMinY()));
-//		Vector diagB = new Vector((float)(hitbox.getMaxX()-hitbox.getMinX()),(float)(hitbox.getMinY()-hitbox.getMaxY()));
-//		//get polygon points
-//		Vector[] points = new Vector[6];
-//		//get dot products
-//		float dotT = diagT.getX()*vel.getX()+diagT.getY()*vel.getY();
-//		float dotB = diagB.getX()*vel.getX()+diagB.getY()*vel.getY();
-//		//get other two points
-//		if(dotT<dotB) {
-//			if(dotB>0) {
-//				points[1] = new Vector((float)hitbox.getMinX(),(float)hitbox.getMinY());
-//				points[2] = new Vector((float)hitbox.getMinX()+vel.getX(),(float)hitbox.getMinY()+vel.getY());
-//				points[4] = new Vector((float)hitbox.getMaxX()+vel.getX(),(float)hitbox.getMaxY()+vel.getY());
-//				points[5] = new Vector((float)hitbox.getMaxX(),(float)hitbox.getMaxY());
-//
-//				points[0] = new Vector((float)hitbox.getMinX(),(float)hitbox.getMaxY());
-//				points[3] = new Vector((float)hitbox.getMaxX()+vel.getX(),(float)hitbox.getMinY()+vel.getY());
-//			}else {
-//				points[5] = new Vector((float)hitbox.getMinX(),(float)hitbox.getMinY());
-//				points[4] = new Vector((float)hitbox.getMinX()+vel.getX(),(float)hitbox.getMinY()+vel.getY());
-//				points[2] = new Vector((float)hitbox.getMaxX()+vel.getX(),(float)hitbox.getMaxY()+vel.getY());
-//				points[1] = new Vector((float)hitbox.getMaxX(),(float)hitbox.getMaxY());
-//
-//				points[0] = new Vector((float)hitbox.getMaxX(),(float)hitbox.getMinY());
-//				points[3] = new Vector((float)hitbox.getMinX()+vel.getX(),(float)hitbox.getMaxY()+vel.getY());
-//			}
-//		}else {
-//			if(dotT>0) {
-//				points[1] = new Vector((float)hitbox.getMaxX(),(float)hitbox.getMinY());
-//				points[2] = new Vector((float)hitbox.getMaxX()+vel.getX(),(float)hitbox.getMinY()+vel.getY());
-//				points[4] = new Vector((float)hitbox.getMinX()+vel.getX(),(float)hitbox.getMaxY()+vel.getY());
-//				points[5] = new Vector((float)hitbox.getMinX(),(float)hitbox.getMaxY());
-//
-//				points[0] = new Vector((float)hitbox.getMinX(),(float)hitbox.getMinY());
-//				points[3] = new Vector((float)hitbox.getMaxX()+vel.getX(),(float)hitbox.getMaxY()+vel.getY());
-//			}else {
-//				points[5] = new Vector((float)hitbox.getMaxX(),(float)hitbox.getMinY());
-//				points[4] = new Vector((float)hitbox.getMaxX()+vel.getX(),(float)hitbox.getMinY()+vel.getY());
-//				points[2] = new Vector((float)hitbox.getMinX()+vel.getX(),(float)hitbox.getMaxY()+vel.getY());
-//				points[1] = new Vector((float)hitbox.getMinX(),(float)hitbox.getMaxY());
-//
-//				points[0] = new Vector((float)hitbox.getMaxX(),(float)hitbox.getMaxY());
-//				points[3] = new Vector((float)hitbox.getMinX()+vel.getX(),(float)hitbox.getMinY()+vel.getY());
-//			}
-//		}
-//		for(int i = 0;i < points.length;i++) {
-//			points[i].add(new Vector(this.x, this.y));
-//		}
+
+		//		//get diagonals
+		//		Vector diagT = new Vector((float)(hitbox.getMaxX()-hitbox.getMinX()),(float)(hitbox.getMaxY()-hitbox.getMinY()));
+		//		Vector diagB = new Vector((float)(hitbox.getMaxX()-hitbox.getMinX()),(float)(hitbox.getMinY()-hitbox.getMaxY()));
+		//		//get polygon points
+		//		Vector[] points = new Vector[6];
+		//		//get dot products
+		//		float dotT = diagT.getX()*vel.getX()+diagT.getY()*vel.getY();
+		//		float dotB = diagB.getX()*vel.getX()+diagB.getY()*vel.getY();
+		//		//get other two points
+		//		if(dotT<dotB) {
+		//			if(dotB>0) {
+		//				points[1] = new Vector((float)hitbox.getMinX(),(float)hitbox.getMinY());
+		//				points[2] = new Vector((float)hitbox.getMinX()+vel.getX(),(float)hitbox.getMinY()+vel.getY());
+		//				points[4] = new Vector((float)hitbox.getMaxX()+vel.getX(),(float)hitbox.getMaxY()+vel.getY());
+		//				points[5] = new Vector((float)hitbox.getMaxX(),(float)hitbox.getMaxY());
+		//
+		//				points[0] = new Vector((float)hitbox.getMinX(),(float)hitbox.getMaxY());
+		//				points[3] = new Vector((float)hitbox.getMaxX()+vel.getX(),(float)hitbox.getMinY()+vel.getY());
+		//			}else {
+		//				points[5] = new Vector((float)hitbox.getMinX(),(float)hitbox.getMinY());
+		//				points[4] = new Vector((float)hitbox.getMinX()+vel.getX(),(float)hitbox.getMinY()+vel.getY());
+		//				points[2] = new Vector((float)hitbox.getMaxX()+vel.getX(),(float)hitbox.getMaxY()+vel.getY());
+		//				points[1] = new Vector((float)hitbox.getMaxX(),(float)hitbox.getMaxY());
+		//
+		//				points[0] = new Vector((float)hitbox.getMaxX(),(float)hitbox.getMinY());
+		//				points[3] = new Vector((float)hitbox.getMinX()+vel.getX(),(float)hitbox.getMaxY()+vel.getY());
+		//			}
+		//		}else {
+		//			if(dotT>0) {
+		//				points[1] = new Vector((float)hitbox.getMaxX(),(float)hitbox.getMinY());
+		//				points[2] = new Vector((float)hitbox.getMaxX()+vel.getX(),(float)hitbox.getMinY()+vel.getY());
+		//				points[4] = new Vector((float)hitbox.getMinX()+vel.getX(),(float)hitbox.getMaxY()+vel.getY());
+		//				points[5] = new Vector((float)hitbox.getMinX(),(float)hitbox.getMaxY());
+		//
+		//				points[0] = new Vector((float)hitbox.getMinX(),(float)hitbox.getMinY());
+		//				points[3] = new Vector((float)hitbox.getMaxX()+vel.getX(),(float)hitbox.getMaxY()+vel.getY());
+		//			}else {
+		//				points[5] = new Vector((float)hitbox.getMaxX(),(float)hitbox.getMinY());
+		//				points[4] = new Vector((float)hitbox.getMaxX()+vel.getX(),(float)hitbox.getMinY()+vel.getY());
+		//				points[2] = new Vector((float)hitbox.getMinX()+vel.getX(),(float)hitbox.getMaxY()+vel.getY());
+		//				points[1] = new Vector((float)hitbox.getMinX(),(float)hitbox.getMaxY());
+		//
+		//				points[0] = new Vector((float)hitbox.getMaxX(),(float)hitbox.getMaxY());
+		//				points[3] = new Vector((float)hitbox.getMinX()+vel.getX(),(float)hitbox.getMinY()+vel.getY());
+		//			}
+		//		}
+		//		for(int i = 0;i < points.length;i++) {
+		//			points[i].add(new Vector(this.x, this.y));
+		//		}
 	}
 
 	private Vector portalCollisions(Vector vel) {
