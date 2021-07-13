@@ -9,10 +9,8 @@ import java.util.HashMap;
 import game.Handler;
 import game.inputs.Binds;
 import game.raycasting.RayEmitter;
-import game.raycasting.object.RayMirror;
 import game.raycasting.object.RayObject;
 import game.raycasting.object.RayPortal;
-import game.raycasting.object.RayWall;
 import utils.Func;
 import utils.Logging;
 import utils.Polygon;
@@ -75,7 +73,7 @@ public class Player extends Entity{
 		vel = new Vector((float) (vel.getX()*Math.cos(handler.getWorld().getRotation())-vel.getY()*Math.sin(handler.getWorld().getRotation())),
 				(float) (vel.getX()*Math.sin(handler.getWorld().getRotation())+vel.getY()*Math.cos(handler.getWorld().getRotation())));
 
-		
+
 		//logging collision times
 		long st = System.nanoTime();
 		//collisions
@@ -180,11 +178,11 @@ public class Player extends Entity{
 							tail = vertices[j];
 						}
 					}
-					
+
 				}
 			}
 		}
-		
+
 		float furtherest = 0;
 		Vector bestSlide = null;
 		RayObject collisionObj = null;
@@ -398,18 +396,21 @@ public class Player extends Entity{
 			camPlayerYoff = handler.getCamera().getYoff() - relPlayerY;
 			//rotate for portal
 			float theta = handler.getWorld().getRotation();
-			//			System.out.println("[Player]\tangle||"+String.valueOf(theta));
-			//			System.out.println("[Player]\tcam-ply1||"+String.valueOf(camPlayerXoff)+","+String.valueOf(camPlayerYoff));
-			camPlayerXoff = (float)(camPlayerXoff*Math.cos(theta)-camPlayerYoff*Math.sin(theta));
+			
+			System.out.println("[Player]\tangle||"+String.valueOf(theta*180/Math.PI));
+			System.out.println("[Player]\tcam-ply1||"+String.valueOf(camPlayerXoff)+","+String.valueOf(camPlayerYoff));
+			
+			float camPlayerXoffT = (float)(camPlayerXoff*Math.cos(theta)-camPlayerYoff*Math.sin(theta));
 			camPlayerYoff = (float)(camPlayerXoff*Math.sin(theta)+camPlayerYoff*Math.cos(theta));
-
-			//			System.out.println("[Player]\tcam-ply2||"+String.valueOf(camPlayerXoff)+","+String.valueOf(camPlayerYoff));
-
+			camPlayerXoff = camPlayerXoffT;
+			
+			System.out.println("[Player]\tcam-ply2||"+String.valueOf(camPlayerXoff)+","+String.valueOf(camPlayerYoff));
+			
 
 			handler.getCamera().focusOnPoint(tx+PLAYER_WIDTH/2, ty+PLAYER_HEIGHT/2, 0);
 			handler.getCamera().move(camPlayerXoff, camPlayerYoff);
 
-			handler.getCamera().setRot(handler.getWorld().getRotation());
+			handler.getCamera().setRot(-handler.getWorld().getRotation());
 
 			this.x = tx;
 			this.y = ty;
