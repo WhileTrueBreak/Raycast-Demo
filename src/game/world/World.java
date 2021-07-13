@@ -28,32 +28,8 @@ public class World {
 		handler.setWorld(this);
 		rayObjects = new ArrayList<RayObject>();
 		player = new Player(1, 5, handler);
-
-//		RayPortal rp1 = new RayPortal(handler, 0, 0, 0, 4);
-//		rayObjects.add(rp1);
-//		rayObjects.add(new RayPortal(handler, 0, 0, 4, 0, rp1));
-
-//		float s = 4;
-//		
-//		rayObjects.add(new RayWall(handler, 0, 0, 5, 0, new Color(0, 0, 0)));
-//		rayObjects.add(new RayWall(handler, 0, 0, 0, 5, new Color(0, 0, 0)));
-//		rayObjects.add(new RayWall(handler, 3, 3, 3, 10, new Color(0, 0, 0)));
-//		//rayObjects.add(new RayWall(handler, 3, 3, 5, 3, new Color(0, 0, 0)));
-//		
-//
-//		rayObjects.add(new RayWall(handler, 5, 0, 5, -10, new Color(0, 0, 0)));
-//		rayObjects.add(new RayWall(handler, 7, 0, 7, -10, new Color(0, 0, 0)));
-//		
-//		rayObjects.add(new RayWall(handler, 7, 0, 8, 5, new Color(0, 0, 0)));
-//		rayObjects.add(new RayWall(handler, 5, 3, 5, 10, new Color(0, 0, 0)));
-//		
-//		RayPortal rp1 = new RayPortal(handler, 0, 5, 3, 5);
-//		rayObjects.add(rp1);
-//		rayObjects.add(new RayPortal(handler, 8, 5, 5, 5, rp1));
-////		
-//		RayPortal rp2 = new RayPortal(handler, 5, -10, 7, -10);
-//		rayObjects.add(rp2);
-//		rayObjects.add(new RayPortal(handler, 3, 10, 5, 10, rp2));
+		
+		/////////////////////////////////MAP/////////////////////////////////
 
 		rayObjects.add(new RayWall(handler, 0, 4, 4, 0, new Color(0, 0, 0)));
 		rayObjects.add(new RayWall(handler, 2, 4, 4, 2, new Color(0, 0, 0)));
@@ -67,6 +43,8 @@ public class World {
 		RayPortal rp2 = new RayPortal(handler, -1, 4, -1, 6);
 		rayObjects.add(rp2);
 		rayObjects.add(new RayPortal(handler, 2, 4, 2, 6, rp2));
+		
+		/////////////////////////////////////////////////////////////////////
 		
 	}
 

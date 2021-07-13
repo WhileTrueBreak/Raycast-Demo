@@ -2,7 +2,6 @@ package game.raycasting;
 
 import java.awt.Color;
 import java.awt.Graphics;
-import java.awt.List;
 import java.util.ArrayList;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -90,7 +89,6 @@ public class RayEmitter {
 		pool.shutdown();
 		//sort by angle
 		rays.sort(new AngleSorter());
-		
 	}
 	
 	public boolean checkIfRayChainMatch(ArrayList<ArrayList<RayObject>> chain1, ArrayList<ArrayList<RayObject>> chain2) {
@@ -108,6 +106,10 @@ public class RayEmitter {
 
 	public void render(Graphics g) {
 		//format in to array
+		
+		//0-rays
+		//1-chains(pass, pass, wall), (mirror, wall)
+		//2-links
 		RayObject[][][] rayChains = new RayObject[rays.size()][0][0];
 		for(int i = 0;i < rayChains.length;i++) {
 			ArrayList<RayObject> arrlistChain = rays.get(i).getRayEndChain();
@@ -136,14 +138,17 @@ public class RayEmitter {
 
 		int depth = 1;
 		//first pass
-		for(int i = 0;i < rayChains[rayChains.length-1].length;i++) {
-			for(int j = 0;j < rayChains[rayChains.length-1][i].length;j++) {
-				if(rayChains[rayChains.length-1][i][j]!=null) {
-					float dist = rays.get(rayChains.length-1).getDistance(depth);
-					float angle = rays.get(rayChains.length-1).getTheta()+handler.getWorld().getRotation();
+		int lastIndex = rayChains.length-1;
+		for(int i = 0;i < rayChains[lastIndex].length;i++) {
+			for(int j = 0;j < rayChains[lastIndex][i].length;j++) {
+				if(rayChains[lastIndex][i][j]!=null) {
+					float dist = rays.get(lastIndex).getDistance(depth);
+					float angle = rays.get(lastIndex).getTheta()-handler.getWorld().getRotation();
 					Vector pos = new Vector((float)(Math.cos(angle)*dist+this.x),(float)(Math.sin(angle)*dist+this.y));
-					activeEP.add(new RayEndpointInfo(rayChains[rayChains.length-1][i][j], pos, depth, i));
-					currentEP.add(new RayEndpointInfo(rayChains[rayChains.length-1][i][j], pos, depth, i));
+					RayEndpointInfo info = new RayEndpointInfo(rayChains[lastIndex][i][j], pos, depth, i, rayChains[lastIndex][i][0]);
+					if(i == 0) info = new RayEndpointInfo(rayChains[lastIndex][i][j], pos, depth, i, null);
+					activeEP.add(info);
+					currentEP.add(info);
 					depth++;
 				}
 			}
@@ -159,7 +164,8 @@ public class RayEmitter {
 						float dist = rays.get(i).getDistance(depth);
 						float angle = rays.get(i).getTheta()-handler.getWorld().getRotation();
 						Vector pos = new Vector((float)(Math.cos(angle)*dist+this.x),(float)(Math.sin(angle)*dist+this.y));
-						RayEndpointInfo newInfo = new RayEndpointInfo(rayChains[i][j][k], pos, depth, j);
+						RayEndpointInfo newInfo = new RayEndpointInfo(rayChains[i][j][k], pos, depth, j, rayChains[i][j][0]);
+						if(j == 0) newInfo = new RayEndpointInfo(rayChains[i][j][k], pos, depth, j, null);
 						tempCurrent.add(newInfo);
 						boolean inActive = false;
 						for(RayEndpointInfo info:activeEP) {
@@ -188,19 +194,21 @@ public class RayEmitter {
 				if(!inCurrent||i==rayChains.length-1) {
 					toRemove.add(activeInfo);
 					for(RayEndpointInfo currentInfo:currentEP) {
-						if(activeInfo.getObj()==currentInfo.getObj()&&activeInfo.getId()==currentInfo.getId()) {
+						if(activeInfo.getObj()==currentInfo.getObj()&&activeInfo.getId()==currentInfo.getId()&&activeInfo.getLast()==currentInfo.getLast()) {
 							if(activeInfo.getObj() instanceof RayMirror) {
-								
+								renderLine(g,activeInfo.getPos().getX(),activeInfo.getPos().getY(), currentInfo.getPos().getX(), currentInfo.getPos().getY(), 
+										new Color(0,255,255));
 							}else if(activeInfo.getObj() instanceof RayWall){
-								renderLine(g,activeInfo.getPos().getX(),activeInfo.getPos().getY(), currentInfo.getPos().getX(), currentInfo.getPos().getY(), new Color(0,0,0));
+								renderLine(g,activeInfo.getPos().getX(),activeInfo.getPos().getY(), currentInfo.getPos().getX(), currentInfo.getPos().getY(), 
+										new Color(0,0,0));
 							}else if(activeInfo.getObj() instanceof RayPass){
-								renderLine(g,activeInfo.getPos().getX(),activeInfo.getPos().getY(), currentInfo.getPos().getX(), currentInfo.getPos().getY(), new Color(0,0,0));
+								renderLine(g,activeInfo.getPos().getX(),activeInfo.getPos().getY(), currentInfo.getPos().getX(), currentInfo.getPos().getY(), 
+										new Color(0,0,0));
 							}else if(activeInfo.getObj() instanceof RayPortal){
 								
 							}
 						}
 					}
-
 				}
 			}
 			activeEP.removeAll(toRemove);
@@ -212,89 +220,6 @@ public class RayEmitter {
 //			r.render(g);
 //		}
 	}
-
-	//		for(int i = 0;i < rayChains.length;i++) {
-	//			RayObject[][] chain1;
-	//			chain1 = i==0?rayChains[rayChains.length-1]:rayChains[i-1];
-	//			RayObject[][] chain2 = rayChains[i];
-	//			int j = 0;
-	//			while(j<chain1.length && j<chain2.length && chain1[j][0]==chain2[j][0]) {
-	//				RayObject[] chainSeg1 = Arrays.copyOfRange(chain1[j], 1, chain1[j].length);
-	//				RayObject[] chainSeg2 = Arrays.copyOfRange(chain2[j], 1, chain2[j].length);
-	//				if(chainSeg1.length == 0||chainSeg2.length == 0) {
-	//					j++;
-	//					continue;
-	//				}
-	//				for(RayObject obj2:chainSeg2) {
-	//					for(RayObject obj1:chainSeg1) {
-	//						if(obj1==obj2) {
-	//							int depth1 = depthCounter(obj1, rays.get(i==0?rayChains.length-1:i-1).getRayEndChain(), j);
-	//							int depth2 = depthCounter(obj2, rays.get(i).getRayEndChain(), j);
-	//							
-	//							float dist1 = rays.get(i==0?rayChains.length-1:i-1).getDistance(depth1);
-	//							float dist2 = rays.get(i).getDistance(depth2);
-	//							float angle1 = rays.get(i==0?rayChains.length-1:i-1).getTheta();
-	//							float angle2 = rays.get(i).getTheta();
-	//							float x1, y1, x2, y2;
-	//							
-	//							x1 = (float) (Math.cos(angle1)*dist1+this.x);
-	//							y1 = (float) (Math.sin(angle1)*dist1+this.y);
-	//							x2 = (float) (Math.cos(angle2)*dist2+this.x);
-	//							y2 = (float) (Math.sin(angle2)*dist2+this.y);
-	//							
-	//							if(obj1 instanceof RayMirror) {
-	//								g.setColor(new Color(0, 255, 0));
-	//							}else if(obj1 instanceof RayWall){
-	//								g.setColor(new Color(255, 0, 0));
-	//							}else if(obj1 instanceof RayPass){
-	//								g.setColor(new Color(0, 0, 255));
-	//							}else if(obj1 instanceof RayPortal){
-	//								g.setColor(new Color(255, 0, 255));
-	//							}
-	//							
-	//							boolean inFrame = Collisions.lineRect(x1, y1, x2, y2, 
-	//									handler.getCamera().getXoff()/handler.getCamera().getScale(),
-	//									handler.getCamera().getYoff()/handler.getCamera().getScale(),
-	//									handler.getWidth()/handler.getCamera().getScale(),
-	//									handler.getHeight()/handler.getCamera().getScale()); 
-	//							if(inFrame) {
-	//								g.drawLine((int)(x1*handler.getCamera().getScale()-handler.getCamera().getXoff()), 
-	//										   (int)(y1*handler.getCamera().getScale()-handler.getCamera().getYoff()), 
-	//										   (int)(x2*handler.getCamera().getScale()-handler.getCamera().getXoff()), 
-	//										   (int)(y2*handler.getCamera().getScale()-handler.getCamera().getYoff()));
-	//							}
-	//						}
-	//					}
-	//				}
-	//				j++;
-	//			}
-	//		}
-	//		for(Ray ray:rays) {
-	//			ArrayList<RayObject>chain = ray.getRayEndChain();
-	//			for(int i = 0;i < chain.size();i++) {
-	//				double x, y;
-	//				x = Math.cos(ray.getTheta())*ray.getDistance(i+1)+this.x;
-	//				y = Math.sin(ray.getTheta())*ray.getDistance(i+1)+this.y;
-	//				if(chain.get(i) instanceof RayMirror) {
-	//					g.setColor(new Color(0, 255, 0));
-	//					g.drawOval((int)(x*handler.getCamera().getScale()-handler.getCamera().getXoff())-2, 
-	//							   (int)(y*handler.getCamera().getScale()-handler.getCamera().getYoff())-2, 4, 4);
-	//				}else if(chain.get(i) instanceof RayWall){
-	//					g.setColor(new Color(255, 0, 0));
-	//					g.drawOval((int)(x*handler.getCamera().getScale()-handler.getCamera().getXoff())-2, 
-	//							   (int)(y*handler.getCamera().getScale()-handler.getCamera().getYoff())-2, 4, 4);
-	//				}else if(chain.get(i) instanceof RayPass){
-	//					g.setColor(new Color(0, 0, 255));
-	//					g.drawOval((int)(x*handler.getCamera().getScale()-handler.getCamera().getXoff())-2, 
-	//							   (int)(y*handler.getCamera().getScale()-handler.getCamera().getYoff())-2, 4, 4);
-	//				}else if(chain.get(i) instanceof RayPortal){
-	//					g.setColor(new Color(255, 0, 255));
-	//					g.drawOval((int)(x*handler.getCamera().getScale()-handler.getCamera().getXoff())-2, 
-	//							   (int)(y*handler.getCamera().getScale()-handler.getCamera().getYoff())-2, 4, 4);
-	//				}
-	//			}
-	//		}
-	//	}
 	
 	private ArrayList<ArrayList<RayObject>> segChain(ArrayList<RayObject> linkedChain){
 		ArrayList<ArrayList<RayObject>> segChain = new ArrayList<ArrayList<RayObject>>();

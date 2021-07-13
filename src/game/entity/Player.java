@@ -82,7 +82,7 @@ public class Player extends Entity{
 		vel = portalCollisions(vel);
 		long et = System.nanoTime();
 		long time = (et-st)/1000;
-		if(time>100) {
+		if(time>1000) {
 			System.out.println("[Player]\tCollision time: "+time+"us");
 			Logging.dumpLog();
 		}
@@ -397,14 +397,14 @@ public class Player extends Entity{
 			//rotate for portal
 			float theta = handler.getWorld().getRotation();
 			
-			System.out.println("[Player]\tangle||"+String.valueOf(theta*180/Math.PI));
-			System.out.println("[Player]\tcam-ply1||"+String.valueOf(camPlayerXoff)+","+String.valueOf(camPlayerYoff));
+//			System.out.println("[Player]\tangle||"+String.valueOf(theta*180/Math.PI));
+//			System.out.println("[Player]\tcam-ply1||"+String.valueOf(camPlayerXoff)+","+String.valueOf(camPlayerYoff));
 			
 			float camPlayerXoffT = (float)(camPlayerXoff*Math.cos(theta)-camPlayerYoff*Math.sin(theta));
 			camPlayerYoff = (float)(camPlayerXoff*Math.sin(theta)+camPlayerYoff*Math.cos(theta));
 			camPlayerXoff = camPlayerXoffT;
 			
-			System.out.println("[Player]\tcam-ply2||"+String.valueOf(camPlayerXoff)+","+String.valueOf(camPlayerYoff));
+//			System.out.println("[Player]\tcam-ply2||"+String.valueOf(camPlayerXoff)+","+String.valueOf(camPlayerYoff));
 			
 
 			handler.getCamera().focusOnPoint(tx+PLAYER_WIDTH/2, ty+PLAYER_HEIGHT/2, 0);

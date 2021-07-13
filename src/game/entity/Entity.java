@@ -1,7 +1,6 @@
 package game.entity;
 
 import java.awt.Graphics;
-import java.util.ArrayList;
 
 import game.Handler;
 import utils.Polygon;
