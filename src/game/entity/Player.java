@@ -130,9 +130,8 @@ public class Player extends Entity{
 	private Tuple3<RayObject, Vector, Float> closestCollisionPoint(Polygon[] polygons, Vector vel){
 		long st = System.nanoTime();
 		int HBC = 0, EPC = 0;
-		HashMap<Vector, RayObject>allCollisions = new HashMap<Vector, RayObject>();
+		ArrayList<Tuple3<RayObject, Vector, Float>>allCollisions = new ArrayList<Tuple3<RayObject, Vector, Float>>();
 		ArrayList<RayObject>rayObjects = handler.getWorld().getRayObjects();
-		HashMap<Vector, Float>collisions = new HashMap<Vector, Float>();
 		for(RayObject obj:rayObjects) {
 			if(obj.isSolid) {
 				for(int i = 0;i < polygons.length;i++) {
@@ -148,8 +147,7 @@ public class Player extends Entity{
 							if(collisionPoint != null) {
 								float dist = Func.dist(collisionPoint.getX(), collisionPoint.getY(), vertex.getX(), vertex.getY());
 								Vector slide = new Vector(obj.getX2()-obj.getX1(), obj.getY2()-obj.getY1());
-								collisions.put(slide, dist);
-								allCollisions.put(slide, obj);
+								allCollisions.add(new Tuple3<RayObject, Vector, Float>(obj, slide, dist));
 							}
 						}
 						//check endpoint collisions
@@ -162,8 +160,7 @@ public class Player extends Entity{
 							if(collisionPoint1 != null) {
 								float dist = Func.dist(collisionPoint1.getX(), collisionPoint1.getY(), obj.getX1(), obj.getY1());
 								Vector slide = new Vector(vertices[j].getX()-tail.getX(), vertices[j].getY()-tail.getY());
-								collisions.put(slide, dist);
-								allCollisions.put(slide, obj);
+								allCollisions.add(new Tuple3<RayObject, Vector, Float>(obj, slide, dist));
 							}
 							//check endpoint 2
 							Vector collisionPoint2 = Collisions.lineLineVector(tail.getX(), tail.getY(), vertices[j].getX(), vertices[j].getY(), 
@@ -172,8 +169,7 @@ public class Player extends Entity{
 							if(collisionPoint2 != null) {
 								float dist = Func.dist(collisionPoint2.getX(), collisionPoint2.getY(), obj.getX2(), obj.getY2());
 								Vector slide = new Vector(vertices[j].getX()-tail.getX(), vertices[j].getY()-tail.getY());
-								collisions.put(slide, dist);
-								allCollisions.put(slide, obj);
+								allCollisions.add(new Tuple3<RayObject, Vector, Float>(obj, slide, dist));
 							}
 							tail = vertices[j];
 						}
@@ -181,26 +177,21 @@ public class Player extends Entity{
 				}
 			}
 		}
-		float furtherest = 0;
-		Vector bestSlide = null;
-		RayObject collisionObj = null;
 		
-		for(Vector sl:allCollisions.keySet()) {
-			RayObject obj = allCollisions.get(sl);
-			float dist = collisions.get(sl);
-			if(dist>furtherest) {
-				furtherest = dist;
-				bestSlide = sl;
-				collisionObj = obj;
+		float maxDist = 0;
+		Tuple3<RayObject, Vector, Float> closestCollision = null;
+		
+		for(Tuple3<RayObject, Vector, Float> col:allCollisions) {
+			if(col.getThird()>maxDist) {
+				closestCollision = col;
+				maxDist = col.getThird();
 			}
 		}
 		
 		long et = System.nanoTime();
 		Logging.addLog("HBC/EPC Checks: " + HBC + "/" + EPC);
 		Logging.addLog("all collisions: "+(et-st)/1000+"us");
-		if(bestSlide == null||collisionObj==null)
-			return null;
-		return new Tuple3<RayObject, Vector, Float>(collisionObj, bestSlide, furtherest);
+		return closestCollision;
 	}
 
 	private void inWall(){
