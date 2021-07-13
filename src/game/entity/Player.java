@@ -97,11 +97,10 @@ public class Player extends Entity{
 		//get polygon points
 		//Vector[] points = getHitboxPolygon(vel);
 		//cut polygon with portal
-		Polygon[] polygons = cutPolygon(getHitboxNewPos(hitbox, vel));
+		Polygon[] polygons = cutPolygon(getHitboxSweep(hitbox, vel));
 		Tuple3<RayObject, Vector, Float> collisionData = closestCollisionPoint(polygons, vel);
 		ArrayList<RayObject> done = new ArrayList<RayObject>();
 		while(collisionData != null) {
-			//System.out.println(collisions);
 			RayObject obj = collisionData.getFirst();
 			if(done.contains(obj)) {
 				vel.mult(0);
@@ -114,7 +113,7 @@ public class Player extends Entity{
 			float dot = objV.getX()*vel.getX()+objV.getY()*vel.getY();
 			vel = Vector.mult(objV, dot);
 			done.add(obj);
-			polygons = cutPolygon(getHitboxNewPos(hitbox, vel));
+			polygons = cutPolygon(getHitboxSweep(hitbox, vel));
 			collisionData = closestCollisionPoint(polygons, vel);
 		}
 		return vel;
@@ -215,7 +214,7 @@ public class Player extends Entity{
 						(float)boundingRect.getX(), (float)boundingRect.getY(), 
 						(float)boundingRect.getWidth(), (float)boundingRect.getHeight())) {
 					if(Collisions.polyLine(hitbox.getVertices(), obj.getX1(), obj.getY1(), obj.getX2(), obj.getY2())) {
-						//System.out.println("in wall");
+						//TODO: Add Stuff
 					}
 				}
 			}
@@ -255,7 +254,7 @@ public class Player extends Entity{
 		return new Polygon(newPoints, newPoints.length);
 	}
 
-	private Polygon getHitboxPolygon(Polygon hitbox, Vector vel) {
+	private Polygon getHitboxSweep(Polygon hitbox, Vector vel) {
 
 		long st = System.nanoTime();
 		//creates polygon stretched in the direction of vel for better collisions
@@ -353,7 +352,6 @@ public class Player extends Entity{
 	private Vector portalCollisions(Vector vel) {
 		ArrayList<RayObject>rayObjects = handler.getWorld().getRayObjects();
 		float tx = 0, ty = 0;
-		float portalAngle = 0;
 		boolean collided = false;
 		for(RayObject obj:rayObjects) {
 			if(obj instanceof RayPortal) {
@@ -379,7 +377,6 @@ public class Player extends Entity{
 					tx = exitPoint.getX()-PLAYER_WIDTH/2;
 					ty = exitPoint.getY()-PLAYER_HEIGHT/2;
 					collided = true;
-					portalAngle = deltaAngle;
 					handler.getWorld().setRotation(handler.getWorld().getRotation()+deltaAngle);
 				}
 			}else {
@@ -397,15 +394,9 @@ public class Player extends Entity{
 			//rotate for portal
 			float theta = handler.getWorld().getRotation();
 			
-//			System.out.println("[Player]\tangle||"+String.valueOf(theta*180/Math.PI));
-//			System.out.println("[Player]\tcam-ply1||"+String.valueOf(camPlayerXoff)+","+String.valueOf(camPlayerYoff));
-			
 			float camPlayerXoffT = (float)(camPlayerXoff*Math.cos(theta)-camPlayerYoff*Math.sin(theta));
 			camPlayerYoff = (float)(camPlayerXoff*Math.sin(theta)+camPlayerYoff*Math.cos(theta));
 			camPlayerXoff = camPlayerXoffT;
-			
-//			System.out.println("[Player]\tcam-ply2||"+String.valueOf(camPlayerXoff)+","+String.valueOf(camPlayerYoff));
-			
 
 			handler.getCamera().focusOnPoint(tx+PLAYER_WIDTH/2, ty+PLAYER_HEIGHT/2, 0);
 			handler.getCamera().move(camPlayerXoff, camPlayerYoff);

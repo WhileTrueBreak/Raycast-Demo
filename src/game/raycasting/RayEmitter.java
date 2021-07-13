@@ -43,7 +43,7 @@ public class RayEmitter {
 		
 		rays = new ArrayList<Ray>();
 		
-		for(float i = 0;i < 360;i+=1) {
+		for(float i = 0;i < 360;i+=0.5f) {
 			Ray ray = new Ray(handler, x, y, (float) (i*Math.PI/180), (float)Math.sqrt(preceivedWidth*preceivedWidth+preceivedHeight*preceivedHeight));
 			ray.setRayObjects(rayObjects);
 			RayThread rt = new RayThread(ray);

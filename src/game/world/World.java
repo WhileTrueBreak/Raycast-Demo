@@ -6,14 +6,13 @@ import java.util.ArrayList;
 
 import game.Handler;
 import game.entity.Player;
-import game.raycasting.object.RayMirror;
 import game.raycasting.object.RayObject;
-import game.raycasting.object.RayPass;
 import game.raycasting.object.RayPortal;
 import game.raycasting.object.RayWall;
 
 public class World {
 	
+	@SuppressWarnings("unused")
 	private Handler handler;
 
 	private ArrayList<RayObject>rayObjects;
@@ -21,7 +20,6 @@ public class World {
 	private Player player;
 	
 	private float rotation = (float) (0*Math.PI/180);
-	private float t = 0;
 	
 	public World(Handler handler) {
 		this.handler = handler;
@@ -57,13 +55,13 @@ public class World {
 
 	public void render(Graphics g) {
 		
-		for(RayObject obj:rayObjects) {
-			//obj.render(g);
-		}
+//		for(RayObject obj:rayObjects) {
+//			obj.render(g);
+//		}
 		player.render(g);
 		//render center
-		g.setColor(new Color(0,0,0));
-		g.drawOval(handler.getWidth()/2-2, handler.getHeight()/2-2, 4, 4);
+//		g.setColor(new Color(0,0,0));
+//		g.drawOval(handler.getWidth()/2-2, handler.getHeight()/2-2, 4, 4);
 	}
 
 	public ArrayList<RayObject> getRayObjects() {
