@@ -4,6 +4,7 @@ import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import game.Handler;
 import game.inputs.Binds;
@@ -13,6 +14,7 @@ import game.raycasting.object.RayObject;
 import game.raycasting.object.RayPortal;
 import game.raycasting.object.RayWall;
 import utils.Func;
+import utils.Logging;
 import utils.Polygon;
 import utils.Vector;
 import utils.collision.Collisions;
@@ -71,10 +73,20 @@ public class Player extends Entity{
 		vel.mult((float) (PLAYER_MOVE_SPEED/handler.getCurrentFps()));
 		vel = new Vector((float) (vel.getX()*Math.cos(handler.getWorld().getRotation())-vel.getY()*Math.sin(handler.getWorld().getRotation())),
 				(float) (vel.getX()*Math.sin(handler.getWorld().getRotation())+vel.getY()*Math.cos(handler.getWorld().getRotation())));
+		
+		long st = System.nanoTime();
 		//collisions
 		vel = collisions(vel);
 		//portal collisions
 		vel = portalCollisions(vel);
+		long et = System.nanoTime();
+		long time = (et-st)/1000;
+		if(time>100) {
+			System.out.println("[Player]\tCollision time: "+time+"us");
+			Logging.dumpLog();
+		}
+		Logging.clearLog();
+		
 		inWall();
 		x+=vel.getX();
 		y+=vel.getY();
@@ -85,17 +97,17 @@ public class Player extends Entity{
 		//Vector[] points = getHitboxPolygon(vel);
 		//cut polygon with portal
 		Polygon[] polygons = cutPolygon(getHitboxPolygon(vel));
-		ArrayList<RayObject> collisions = allCollisions(polygons);
+		HashMap<RayObject, Vector> collisions = allCollisions(polygons);
 		ArrayList<RayObject> done = new ArrayList<RayObject>();
 		//System.out.println(collisions.size());
 		while(collisions.size()!=0) {
-			System.out.println(collisions);
-			RayObject obj = collisions.get(0);
+			//System.out.println(collisions);
+			RayObject obj = collisions.keySet().iterator().next();
 			if(done.contains(obj)) {
 				vel.mult(0);
 				break;
 			}
-			Vector objV = new Vector(obj.getX2()-obj.getX1(),obj.getY2()-obj.getY1());
+			Vector objV = collisions.get(obj);
 			objV.normalise();
 			float dot = objV.getX()*vel.getX()+objV.getY()*vel.getY();
 			vel = Vector.mult(objV, dot);
@@ -114,23 +126,28 @@ public class Player extends Entity{
 		return polygons;
 	}
 
-	private ArrayList<RayObject> allCollisions(Polygon[] polygons){
-		ArrayList<RayObject>out = new ArrayList<RayObject>();
+	private HashMap<RayObject, Vector> allCollisions(Polygon[] polygons){
+		long st = System.nanoTime();
+		HashMap<RayObject, Vector>out = new HashMap<RayObject, Vector>();
 		ArrayList<RayObject>rayObjects = handler.getWorld().getRayObjects();
 		for(RayObject obj:rayObjects) {
 			for(int i = 0;i < polygons.length;i++) {
 				if(obj.isSolid) {
 					Rectangle2D.Float bound = polygons[i].getBoundingRect();
-					
 					if(Collisions.lineRect(obj.getX1(), obj.getY1(), obj.getX2(), obj.getY2(), 
 							bound.x, bound.y, bound.width, bound.height)) {
 						if(Collisions.polyLine(polygons[i].getVertices(), obj.getX1(), obj.getY1(), obj.getX2(), obj.getY2())) {
-							out.add(obj);
+							Vector para = new Vector(obj.getX2()-obj.getX1(), obj.getY2()-obj.getY1());
+							Vector normal = new Vector(1, -para.getX()/para.getY());
+							normal.normalise();
+							out.put(obj, para);
 						}
 					}
 				}
 			}
 		}
+		long et = System.nanoTime();
+		Logging.addLog("all collisions: "+(et-st)/1000+"us");
 		//TODO: sort by type of collision
 		//collisions on line end handled last
 		//or fix corner collisions (will do anyways)
@@ -170,11 +187,12 @@ public class Player extends Entity{
 		Vector v2 = Vector.sub(points[1], avgPoint);
 		
 		float cross = v1.getX()*v2.getY()-v1.getY()*v2.getX();
-		
 		return cross;
 	}
 
 	private Polygon getHitboxPolygon(Vector vel) {
+
+		long st = System.nanoTime();
 		//creates polygon stretched in the direction of vel for better collisions
 		
 		//loop through vertices
@@ -212,6 +230,8 @@ public class Player extends Entity{
 		for(int i = 0;i < newPointsArr.length;i++) {
 			newPointsArr[i].add(new Vector(this.x, this.y));
 		}
+		long et = System.nanoTime();
+		Logging.addLog("polygon sweep: "+(et-st)/1000+"us");
 		return new Polygon(newPointsArr, newPointsArr.length);
 		
 //		//get diagonals

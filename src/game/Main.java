@@ -126,7 +126,7 @@ public class Main implements Runnable{
 			if(timer >= 1000000000) {
 				System.out.println("[Main]\t\t" + ticks + " fps");
 				seconds++;
-				System.out.println("[Main]\t\t" + frames/seconds + " afps");
+				//System.out.println("[Main]\t\t" + frames/seconds + " afps");
 				ticks = 0;
 				timer = 0;
 			}

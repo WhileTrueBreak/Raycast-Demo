@@ -67,7 +67,7 @@ public class World {
 	public void render(Graphics g) {
 		
 		for(RayObject obj:rayObjects) {
-			obj.render(g);
+			//obj.render(g);
 		}
 		player.render(g);
 		//render center
