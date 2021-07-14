@@ -38,23 +38,52 @@ public class Player extends Entity{
 
 	@Override
 	public void update() {
+		
+		long st = System.nanoTime();
+		
 		move();
+		
+		long est = System.nanoTime();
+		
 		rayEmitter.setX(x+PLAYER_WIDTH/2);
 		rayEmitter.setY(y+PLAYER_HEIGHT/2);
 		rayEmitter.setRayObjects(handler.getWorld().getRayObjects());
 		rayEmitter.updateRays();
 		//handler.getCamera().focusOnEntity(this, 1.1f);
 		handler.getCamera().focusOnPoint(x+PLAYER_WIDTH/2, y+PLAYER_HEIGHT/2, 0.1f);
+		
+		//logging
+		long et = System.nanoTime();
+		Logging.addLog("Move time: "+(est-st)/1000+"us");
+		Logging.addLog("RT time: "+(et-est)/1000+"us");
+		long time = (et-st)/1000;
+		if(time>1000) {
+			System.out.println("[Player]\tUpdate time: "+time+"us");
+			Logging.dumpLog();
+		}
+		Logging.clearLog();
 	}
 
 	@Override
 	public void render(Graphics g) {
+		
+		long st = System.nanoTime();
+		
 		rayEmitter.render(g);
 		g.setColor(new Color(0, 255, 0));
 		g.fillRect((int)(x*handler.getCamera().getScale()-handler.getCamera().getXoff()), 
 				(int)(y*handler.getCamera().getScale()-handler.getCamera().getYoff()), 
 				(int)(PLAYER_WIDTH*handler.getCamera().getScale()), 
 				(int)(PLAYER_HEIGHT*handler.getCamera().getScale()));
+		
+		//logging
+		long et = System.nanoTime();
+		long time = (et-st)/1000;
+		if(time>1000) {
+			System.out.println("[Player]\tRender time: "+time+"us");
+			Logging.dumpLog();
+		}
+		Logging.clearLog();
 	}
 
 	private void move() {
@@ -72,22 +101,10 @@ public class Player extends Entity{
 		vel.mult((float) (PLAYER_MOVE_SPEED/handler.getCurrentFps()));
 		vel = new Vector((float) (vel.getX()*Math.cos(handler.getWorld().getRotation())-vel.getY()*Math.sin(handler.getWorld().getRotation())),
 				(float) (vel.getX()*Math.sin(handler.getWorld().getRotation())+vel.getY()*Math.cos(handler.getWorld().getRotation())));
-
-
-		//logging collision times
-		long st = System.nanoTime();
 		//collisions
 		vel = collisions(vel);
 		//portal collisions
 		vel = portalCollisions(vel);
-		//logging
-		long et = System.nanoTime();
-		long time = (et-st)/1000;
-		if(time>100) {
-			System.out.println("[Player]\tCollision time: "+time+"us");
-			Logging.dumpLog();
-		}
-		Logging.clearLog();
 
 		inWall();
 		x+=vel.getX();
@@ -189,8 +206,8 @@ public class Player extends Entity{
 		}
 		
 		long et = System.nanoTime();
-		Logging.addLog("HBC/EPC Checks: " + HBC + "/" + EPC);
-		Logging.addLog("all collisions: "+(et-st)/1000+"us");
+		Logging.addLog("\tHBC/EPC Checks: " + HBC + "/" + EPC);
+		Logging.addLog("\tall collisions: "+(et-st)/1000+"us");
 		return closestCollision;
 	}
 
@@ -239,7 +256,7 @@ public class Player extends Entity{
 			newPoints[i].add(new Vector(this.x, this.y));
 		}
 		long et = System.nanoTime();
-		Logging.addLog("polygon move: "+(et-st)/1000+"us");
+		Logging.addLog("\tpolygon move: "+(et-st)/1000+"us");
 		return new Polygon(newPoints, newPoints.length);
 	}
 
@@ -284,7 +301,7 @@ public class Player extends Entity{
 			newPointsArr[i].add(new Vector(this.x, this.y));
 		}
 		long et = System.nanoTime();
-		Logging.addLog("polygon sweep: "+(et-st)/1000+"us");
+		Logging.addLog("\tpolygon sweep: "+(et-st)/1000+"us");
 		return new Polygon(newPointsArr, newPointsArr.length);
 
 		//		//get diagonals

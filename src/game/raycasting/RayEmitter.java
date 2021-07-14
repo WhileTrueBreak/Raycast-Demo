@@ -43,7 +43,7 @@ public class RayEmitter {
 		
 		rays = new ArrayList<Ray>();
 		
-		for(float i = 0;i < 360;i+=0.5f) {
+		for(float i = 0;i < 360;i+=2f) {
 			Ray ray = new Ray(handler, x, y, (float) (i*Math.PI/180), (float)Math.sqrt(preceivedWidth*preceivedWidth+preceivedHeight*preceivedHeight));
 			ray.setRayObjects(rayObjects);
 			RayThread rt = new RayThread(ray);
@@ -131,8 +131,7 @@ public class RayEmitter {
 			}
 			rayChains[i] = arrChain;
 		}
-		//
-
+		
 		ArrayList<RayEndpointInfo> activeEP = new ArrayList<RayEndpointInfo>();
 		ArrayList<RayEndpointInfo> currentEP = new ArrayList<RayEndpointInfo>();
 
@@ -155,6 +154,8 @@ public class RayEmitter {
 		}
 		//looped pass
 		for(int i = 0;i < rayChains.length;i++) {
+			
+			//rendering
 			depth = 1;
 			ArrayList<RayEndpointInfo> toAdd = new ArrayList<RayEndpointInfo>();
 			ArrayList<RayEndpointInfo> tempCurrent = new ArrayList<RayEndpointInfo>();
@@ -187,7 +188,7 @@ public class RayEmitter {
 			for(RayEndpointInfo activeInfo:activeEP) {
 				boolean inCurrent = false;
 				for(RayEndpointInfo currentInfo:tempCurrent) {
-					if(activeInfo.getObj()==currentInfo.getObj()&&activeInfo.getId()==currentInfo.getId()) {
+					if(activeInfo.getObj()==currentInfo.getObj()&&activeInfo.getId()==currentInfo.getId()&&activeInfo.getLast()==currentInfo.getLast()) {
 						inCurrent = true;
 					}
 				}
@@ -205,7 +206,8 @@ public class RayEmitter {
 								renderLine(g,activeInfo.getPos().getX(),activeInfo.getPos().getY(), currentInfo.getPos().getX(), currentInfo.getPos().getY(), 
 										new Color(0,0,0));
 							}else if(activeInfo.getObj() instanceof RayPortal){
-								
+//								renderLine(g,activeInfo.getPos().getX(),activeInfo.getPos().getY(), currentInfo.getPos().getX(), currentInfo.getPos().getY(), 
+//										new Color(100,0,255));
 							}
 						}
 					}
