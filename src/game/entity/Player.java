@@ -44,6 +44,7 @@ public class Player extends Entity{
 		move();
 		
 		long est = System.nanoTime();
+		Logging.addLog("Move time: "+(est-st)/1000+"us");
 		
 		rayEmitter.setX(x+PLAYER_WIDTH/2);
 		rayEmitter.setY(y+PLAYER_HEIGHT/2);
@@ -54,10 +55,9 @@ public class Player extends Entity{
 		
 		//logging
 		long et = System.nanoTime();
-		Logging.addLog("Move time: "+(est-st)/1000+"us");
 		Logging.addLog("RT time: "+(et-est)/1000+"us");
 		long time = (et-st)/1000;
-		if(time>1000) {
+		if(time<100000) {
 			System.out.println("[Player]\tUpdate time: "+time+"us");
 			Logging.dumpLog();
 		}
@@ -79,7 +79,7 @@ public class Player extends Entity{
 		//logging
 		long et = System.nanoTime();
 		long time = (et-st)/1000;
-		if(time>1000) {
+		if(time>15000) {
 			System.out.println("[Player]\tRender time: "+time+"us");
 			Logging.dumpLog();
 		}
@@ -138,9 +138,29 @@ public class Player extends Entity{
 	}
 
 	private Polygon[] cutPolygon(Polygon polygon){
+		long st = System.nanoTime();
+		//ArrayList<Vector> poly1 = new ArrayList<Vector>();
+		//ArrayList<Vector> poly2 = new ArrayList<Vector>();
+		
+		RayPortal portal = null;
 		//TODO cut polygon with portal
+		for(RayObject obj:handler.getWorld().getRayObjects()) {
+			if(obj instanceof RayPortal) {
+				portal = (RayPortal)obj;
+			}
+		}
+		
+		if(portal != null) {
+			//System.out.println("po");
+		}
+		
 		//move cut portion to other side of portal
 		Polygon[] polygons = {polygon};
+		//logging
+		long et = System.nanoTime();
+		Logging.addLog("\tcut polygon: "+(et-st)/1000+"us");
+		
+		
 		return polygons;
 	}
 
@@ -148,8 +168,8 @@ public class Player extends Entity{
 		long st = System.nanoTime();
 		int HBC = 0, EPC = 0;
 		ArrayList<Tuple3<RayObject, Vector, Float>>allCollisions = new ArrayList<Tuple3<RayObject, Vector, Float>>();
-		ArrayList<RayObject>rayObjects = handler.getWorld().getRayObjects();
-		for(RayObject obj:rayObjects) {
+		
+		for(RayObject obj:handler.getWorld().getRayObjects()) {
 			if(obj.isSolid) {
 				for(int i = 0;i < polygons.length;i++) {
 					Vector[] vertices = polygons[i].getVertices();

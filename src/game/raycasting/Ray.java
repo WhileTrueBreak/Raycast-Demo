@@ -31,6 +31,7 @@ public class Ray {
 
 
 	private float x1, y1, x2, y2, theta;
+	private float minX, maxX;
 	//current iteration of the ray
 	private int layer;
 	//first ray initialization of the ray
@@ -45,6 +46,8 @@ public class Ray {
 		this.theta = theta;
 		this.nextRay = null;
 		this.layer = 1;
+		this.minX = Math.min(x1, x2);
+		this.maxX = Math.max(x1, x2);
 	}
 
 	public Ray(Handler handler, float x,  float y, float theta, float dist, int layer){
@@ -58,6 +61,13 @@ public class Ray {
 		this.theta = theta;
 		this.nextRay = null;
 		this.layer = layer;
+		if(x1>x2) {
+			minX = x2;
+			maxX = x1;
+		}else {
+			minX = x1;
+			maxX = x2;
+		}
 	}
 
 	public void render(Graphics g){
@@ -165,6 +175,7 @@ public class Ray {
 		RayObject closest = null;
 		float recordDist = (float) Double.POSITIVE_INFINITY;
 		for(RayObject ro:rayObjects){
+			if(!(ro.getMinX()<maxX||ro.getMaxX()>minX)) continue;
 			if(ro == prevCollision) continue;
 			Vector collisionPoint = Collisions.lineLineVector(ro.getX1(), ro.getY1(), ro.getX2(), ro.getY2(), x1, y1, x2, y2);
 			if(collisionPoint == null) continue;

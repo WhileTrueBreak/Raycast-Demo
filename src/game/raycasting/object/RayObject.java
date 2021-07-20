@@ -11,6 +11,8 @@ public abstract class RayObject {
 	protected Handler handler;
 	protected float x1, y1, x2, y2;
 	
+	protected float minX, maxX;
+	
 	protected boolean transposeRay = false;
 
 	public RayObject(Handler handler, float x1, float y1, float x2, float y2){
@@ -19,6 +21,8 @@ public abstract class RayObject {
 		this.y1 = y1;
 		this.x2 = x2;
 		this.y2 = y2;
+		this.minX = Math.min(x1, x2);
+		this.maxX = Math.max(x1, x2);
 	}
 
 	public abstract void render(Graphics g);
@@ -38,6 +42,14 @@ public abstract class RayObject {
 
 	public float getY2(){
 		return y2;
+	}
+
+	public float getMinX() {
+		return minX;
+	}
+
+	public float getMaxX() {
+		return maxX;
 	}
 
 	public void setX1(float x1) {

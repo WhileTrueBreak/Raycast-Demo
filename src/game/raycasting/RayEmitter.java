@@ -3,9 +3,12 @@ package game.raycasting;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Consumer;
 
 import game.Handler;
 import game.raycasting.object.RayMirror;
@@ -13,6 +16,7 @@ import game.raycasting.object.RayObject;
 import game.raycasting.object.RayPass;
 import game.raycasting.object.RayPortal;
 import game.raycasting.object.RayWall;
+import utils.Logging;
 import utils.Vector;
 
 public class RayEmitter {
@@ -22,51 +26,77 @@ public class RayEmitter {
 
 	private Handler handler;
 	private float x, y;
+	
+	private ExecutorService pool;
 
 	public RayEmitter(Handler handler, float x, float y) {
 		rayObjects = new ArrayList<RayObject>();
 		this.handler = handler;
 		this.x = x;
 		this.y = y;
+		
+		//multitreading variables
+		int MAX_T = 4;
+		this.pool = Executors.newCachedThreadPool(); 
 	}
 
 	public void updateRays() {
-
+		
 		float preceivedWidth = handler.getWidth()/handler.getCamera().getScale();
 		float preceivedHeight = handler.getHeight()/handler.getCamera().getScale();
-
-		//multitreading variables
-		int MAX_T = 4;
-		ExecutorService pool = Executors.newFixedThreadPool(MAX_T); 
+		
+		//logging
+		long st1 = System.nanoTime();
+		
 		ArrayList<Callable<Object>> todo = new ArrayList<Callable<Object>>(1);
 		ArrayList<RayThread> rts = new ArrayList<RayThread>();
 		
 		rays = new ArrayList<Ray>();
 		
-		for(float i = 0;i < 360;i+=2f) {
-			Ray ray = new Ray(handler, x, y, (float) (i*Math.PI/180), (float)Math.sqrt(preceivedWidth*preceivedWidth+preceivedHeight*preceivedHeight));
+		for(float i = 0;i < 360;i+=1f) {
+			Ray ray = new Ray(handler, x, y, (float) (i*Math.PI/180), (float)Math.sqrt(preceivedWidth*preceivedWidth+preceivedHeight*preceivedHeight)*0.6f);
 			ray.setRayObjects(rayObjects);
 			RayThread rt = new RayThread(ray);
 			rts.add(rt);
 			todo.add(Executors.callable(rt));
 		}
+
+		long sti1 = System.nanoTime();
 		try {
 			pool.invokeAll(todo);
 		} catch (InterruptedException e) {}
 		for(RayThread rt:rts) {
 			rays.add(rt.getRay());
 		}
+		long eti1 = System.nanoTime();
 		
+		//logging
+		long st2 = System.nanoTime();
+		int spc = 0;
 		//reset for next pass
-		todo = new ArrayList<Callable<Object>>(1);
+		todo = new ArrayList<Callable<Object>>();
 		rts = new ArrayList<RayThread>();
-		
+		//
 		//second pass
-		ArrayList<ArrayList<RayObject>> prevChain = segChain(rays.get(rays.size()-1).getRayEndChain());
-		ArrayList<ArrayList<RayObject>> currentChain = new ArrayList<ArrayList<RayObject>>();
+		RayObject[][] prevChain = segChain(rays.get(rays.size()-1).getRayEndChain());
+		RayObject[][] currentChain = new RayObject[0][0];
+		
+//		//test ray match time
+//		long strm = System.nanoTime();
+//		for(int i = 0;i < rays.size();i++) {
+//			currentChain = segChain(rays.get(i).getRayEndChain());
+//			checkIfRayChainMatch(prevChain, currentChain);
+//		}
+//		long etrm = System.nanoTime();
+//		Logging.addLog("\tray match: "+(etrm-strm)/1000+"us");
+		
+		prevChain = segChain(rays.get(rays.size()-1).getRayEndChain());
+		currentChain = new RayObject[0][0];
+		
 		for(int i = 0;i < rays.size();i++) {
 			currentChain = segChain(rays.get(i).getRayEndChain());
 			if(checkIfRayChainMatch(prevChain, currentChain)) {
+				spc++;
 				float inc = (float) (Math.PI/180)/10;
 				float startAngle = rays.get(i==0?rays.size()-1:i-1).getTheta();
 				float endAngle = rays.get(i).getTheta();
@@ -80,25 +110,41 @@ public class RayEmitter {
 			}
 			prevChain = segChain(rays.get(i).getRayEndChain());
 		}
+		long sti2 = System.nanoTime();
 		try {
 			pool.invokeAll(todo);
 		} catch (InterruptedException e) {}
 		for(RayThread rt:rts) {
 			rays.add(rt.getRay());
 		}
-		pool.shutdown();
+		//
+		long eti2 = System.nanoTime();
+		long et = System.nanoTime();
+
+		Logging.addLog("\tfirst pass: "+(st2-st1)/1000+"us");
+		Logging.addLog("\tfirst invoke: "+(eti1-sti1)/1000+"us");
+		Logging.addLog("\tsecond pass: "+(et-st2)/1000+"us");
+		Logging.addLog("\tsecond invoke: "+(eti2-sti2)/1000+"us");
+		Logging.addLog("\ttotal loss: "+((et-st2)-(eti2-sti2)+(st2-st1)-(eti1-sti1))/1000+"us");
+		Logging.addLog("\tsecond pass count: "+spc);
+		
 		//sort by angle
 		rays.sort(new AngleSorter());
 	}
 	
-	public boolean checkIfRayChainMatch(ArrayList<ArrayList<RayObject>> chain1, ArrayList<ArrayList<RayObject>> chain2) {
-		if(chain1.size()!=chain2.size()) {
+	public boolean checkIfRayChainMatch(RayObject[][] chain1, RayObject[][] chain2) {
+		if(chain1.length!=chain2.length) {
+//			System.out.println("chain size");
 			return true;
-		}else {
-			for(int j = 0;j < chain1.size();j++) {
-				if(!(chain2.get(j).containsAll(chain1.get(j)) && chain1.get(j).containsAll(chain2.get(j)))) {
-					return true;
-				}
+		}
+		for(int i = 0;i < chain1.length;i++) {
+			if(chain1[i].length != chain2[i].length) {
+//				System.out.println("link size");
+				return true;
+			}
+			if(!Arrays.equals(chain1[i], chain2[i])) {
+//				System.out.println("link diff");
+				return true;
 			}
 		}
 		return false;
@@ -223,18 +269,30 @@ public class RayEmitter {
 //		}
 	}
 	
-	private ArrayList<ArrayList<RayObject>> segChain(ArrayList<RayObject> linkedChain){
-		ArrayList<ArrayList<RayObject>> segChain = new ArrayList<ArrayList<RayObject>>();
+	private RayObject[][] segChain(ArrayList<RayObject> linkedChain){
+		//set array length
+		int count = 1;
+		for(RayObject obj:linkedChain) {
+			if(obj.canTransposeRay()) {
+				count++;
+			}
+		}
+		RayObject[][] segChain = new RayObject[count][0];
+		RayObject[] segArr = new RayObject[0];
+		//
+		count = 0;
 		ArrayList<RayObject> seg = new ArrayList<RayObject>();
 		seg.add(null);
 		for(RayObject obj:linkedChain) {
 			if(obj.canTransposeRay()) {
-				segChain.add(seg);
+				segArr = seg.toArray(segArr);
+				segChain[count] = segArr;
 				seg = new ArrayList<RayObject>();
 			}
 			seg.add(obj);
 		}
-		segChain.add(seg);
+		segArr = seg.toArray(segArr);
+		segChain[count] = segArr;
 		return segChain;
 	}
 
@@ -245,6 +303,10 @@ public class RayEmitter {
 				(int)(y1*handler.getCamera().getScale()-handler.getCamera().getYoff()), 
 				(int)(x2*handler.getCamera().getScale()-handler.getCamera().getXoff()), 
 				(int)(y2*handler.getCamera().getScale()-handler.getCamera().getYoff()));
+	}
+	
+	public void shutdown() {
+		this.pool.shutdown();
 	}
 
 	public void setRayObjects(ArrayList<RayObject> rayObjects) {
