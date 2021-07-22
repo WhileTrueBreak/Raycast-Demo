@@ -48,8 +48,19 @@ public class Vector {
 		}
 	}
 	
+	public void rotate(float theta) {
+		float x2=(float)(Math.cos(theta)*x-Math.sin(theta)*y);
+		float y2=(float)(Math.sin(theta)*x+Math.cos(theta)*y);
+		x = x2;
+		y = y2;
+	}
+	
 	public float magnitude() {
 		return (float)Math.sqrt(x*x+y*y);
+	}
+	
+	public Vector copy() {
+		return new Vector(x, y);
 	}
 	
 	public static Vector sub(Vector v1, Vector v2) {
@@ -62,6 +73,10 @@ public class Vector {
 	
 	public static Vector mult(Vector v1, float n) {
 		return new Vector(v1.getX()*n, v1.getY()*n);
+	}
+	
+	public static float dot(Vector v1, Vector v2) {
+		return v1.getX()*v2.getX()+v1.getY()*v2.getY();
 	}
 	
 	public String toString() {

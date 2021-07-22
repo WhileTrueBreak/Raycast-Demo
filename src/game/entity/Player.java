@@ -4,7 +4,6 @@ import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
-import java.util.HashMap;
 
 import game.Handler;
 import game.inputs.Binds;
@@ -16,6 +15,7 @@ import utils.Logging;
 import utils.Polygon;
 import utils.Vector;
 import utils.collision.Collisions;
+import utils.tuple.Tuple2;
 import utils.tuple.Tuple3;
 
 public class Player extends Entity{
@@ -30,7 +30,7 @@ public class Player extends Entity{
 	public Player(float x, float y, Handler handler) {
 		super(x, y, handler);
 		Vector[] hitboxVertex = {new Vector(0,0), new Vector(PLAYER_WIDTH, 0), new Vector(PLAYER_WIDTH, PLAYER_HEIGHT), new Vector(0, PLAYER_HEIGHT)};
-		hitbox = new Polygon(hitboxVertex, 4);
+		hitbox = new Polygon(hitboxVertex);
 		hitboxRotation = (int) Math.signum(getHitboxRotation());
 		//hitbox = new Rectangle2D.Float(0, 0, PLAYER_WIDTH, PLAYER_HEIGHT);
 		rayEmitter = new RayEmitter(handler, x+PLAYER_WIDTH/2, y+PLAYER_HEIGHT/2);
@@ -57,7 +57,7 @@ public class Player extends Entity{
 		long et = System.nanoTime();
 		Logging.addLog("RT time: "+(et-est)/1000+"us");
 		long time = (et-st)/1000;
-		if(time<100000) {
+		if(time>10000) {
 			System.out.println("[Player]\tUpdate time: "+time+"us");
 			Logging.dumpLog();
 		}
@@ -70,11 +70,16 @@ public class Player extends Entity{
 		long st = System.nanoTime();
 		
 		rayEmitter.render(g);
-		g.setColor(new Color(0, 255, 0));
-		g.fillRect((int)(x*handler.getCamera().getScale()-handler.getCamera().getXoff()), 
-				(int)(y*handler.getCamera().getScale()-handler.getCamera().getYoff()), 
-				(int)(PLAYER_WIDTH*handler.getCamera().getScale()), 
-				(int)(PLAYER_HEIGHT*handler.getCamera().getScale()));
+		
+		for(Tuple2<Polygon, Vector> poly:cutPolygon(getHitboxNewPos(hitbox, new Vector(0, 0)), new Vector(0, 0))) {
+			poly.getFirst().render(handler, g);
+		}
+		
+//		g.setColor(new Color(0, 255, 0));
+//		g.fillRect((int)(x*handler.getCamera().getScale()-handler.getCamera().getXoff()), 
+//				(int)(y*handler.getCamera().getScale()-handler.getCamera().getYoff()), 
+//				(int)(PLAYER_WIDTH*handler.getCamera().getScale()), 
+//				(int)(PLAYER_HEIGHT*handler.getCamera().getScale()));
 		
 		//logging
 		long et = System.nanoTime();
@@ -115,7 +120,7 @@ public class Player extends Entity{
 		//get polygon points
 		//Vector[] points = getHitboxPolygon(vel);
 		//cut polygon with portal
-		Polygon[] polygons = cutPolygon(getHitboxSweep(hitbox, vel));
+		ArrayList<Tuple2<Polygon, Vector>>polygons = cutPolygon(getHitboxSweep(hitbox, vel), vel);
 		Tuple3<RayObject, Vector, Float> collisionData = closestCollisionPoint(polygons, vel);
 		ArrayList<RayObject> done = new ArrayList<RayObject>();
 		while(collisionData != null) {
@@ -131,59 +136,134 @@ public class Player extends Entity{
 			float dot = objV.getX()*vel.getX()+objV.getY()*vel.getY();
 			vel = Vector.mult(objV, dot);
 			done.add(obj);
-			polygons = cutPolygon(getHitboxSweep(hitbox, vel));
+			polygons = cutPolygon(getHitboxSweep(hitbox, vel), vel);
 			collisionData = closestCollisionPoint(polygons, vel);
 		}
 		return vel;
 	}
 
-	private Polygon[] cutPolygon(Polygon polygon){
+	private ArrayList<Tuple2<Polygon, Vector>> cutPolygon(Polygon polygon, Vector vel){
 		long st = System.nanoTime();
 		//ArrayList<Vector> poly1 = new ArrayList<Vector>();
 		//ArrayList<Vector> poly2 = new ArrayList<Vector>();
-		
-		RayPortal portal = null;
+		ArrayList<Tuple2<Polygon, Vector>> polygons = new ArrayList<Tuple2<Polygon, Vector>>();
+		RayPortal portalObject = null;
 		//TODO cut polygon with portal
 		for(RayObject obj:handler.getWorld().getRayObjects()) {
 			if(obj instanceof RayPortal) {
-				portal = (RayPortal)obj;
+				if(Collisions.polyLine(polygon.getVertices(), obj.getX1(), obj.getY1(), obj.getX2(), obj.getY2()))
+					portalObject = (RayPortal)obj;
 			}
 		}
-		
-		if(portal != null) {
-			//System.out.println("po");
+		if(portalObject != null) {
+			Vector tail = polygon.getVertices()[polygon.getVertexCount()-1];
+			
+			boolean onRealSide = !Collisions.lineLine(this.x+PLAYER_WIDTH/2, this.y+PLAYER_HEIGHT/2, tail.getX(), tail.getY(), 
+					portalObject.getX1(), portalObject.getY1(), portalObject.getX2(), portalObject.getY2());
+			
+			ArrayList<Vector> realSeg = new ArrayList<Vector>();
+			Vector[] realSegArr = new Vector[0];
+			ArrayList<Vector> imgSeg = new ArrayList<Vector>();
+			Vector[] imgSegArr = new Vector[0];
+			//check is last element is on the real side
+			Vector portalEx = new Vector(portalObject.getX2()-portalObject.getX1(), portalObject.getY2()-portalObject.getY1());
+			portalEx.mult(10);
+			//loop all edges
+			for(Vector head:polygon.getVertices()) {
+				if(onRealSide) realSeg.add(tail);
+				else imgSeg.add(tail);
+				Vector collisionPoint = Collisions.lineLineVector(tail.getX(), tail.getY(), head.getX(), head.getY(), 
+						portalObject.getX1()-portalEx.getX(), portalObject.getY1()-portalEx.getY(), portalObject.getX2()+portalEx.getX(), portalObject.getY2()+portalEx.getY());
+				if(collisionPoint != null) {
+					realSeg.add(collisionPoint);
+					imgSeg.add(collisionPoint);
+					onRealSide = !onRealSide;
+				}
+				tail = head;
+			}
+			//portal translation
+			ArrayList<Vector> NimgSeg = new ArrayList<Vector>();
+			Vector portalPos1 = new Vector(portalObject.getX1(),  portalObject.getY1());
+			Vector portalPos2 = new Vector(portalObject.getX2(),  portalObject.getY2());
+			Vector portalVel = vel.copy();
+			
+			RayPortal linkedPortal = portalObject.getLinkedPortal();
+			float enteranceAngle = (float) Math.atan2(portalObject.getY2()-portalObject.getY1(), portalObject.getX2()-portalObject.getX1());
+			float exitAngle = (float) Math.atan2(linkedPortal.getY2()-linkedPortal.getY1(), linkedPortal.getX2()-linkedPortal.getX1());
+			float deltaAngle = exitAngle-enteranceAngle;
+			float portalLength = Func.dist(portalObject.getX1(), portalObject.getY1(), portalObject.getX2(), portalObject.getY2());
+			
+			for(Vector point:imgSeg) {
+				Vector portalVector = Vector.sub(portalPos2, portalPos1);
+				Vector branchVector = Vector.sub(point, portalPos1);
+				portalVector.normalise();
+				float dot = Vector.dot(portalVector, branchVector);
+				Vector resolute = Vector.mult(portalVector, dot);
+				Vector mappedPoint = Vector.add(portalPos1, resolute);
+				Vector perp = Vector.sub(branchVector, resolute);
+				
+				float fromCollision = Func.dist(portalObject.getX1(), portalObject.getY1(), mappedPoint.getX(), mappedPoint.getY());
+				float collisionPercent = fromCollision/portalLength;
+				
+				float exitdx = linkedPortal.getX2()-linkedPortal.getX1();
+				float exitdy = linkedPortal.getY2()-linkedPortal.getY1();
+				Vector exitPoint = new Vector(linkedPortal.getX1()+exitdx*collisionPercent, linkedPortal.getY1()+exitdy*collisionPercent);
+				
+				perp.rotate(deltaAngle);
+				exitPoint.add(perp);
+				NimgSeg.add(exitPoint);
+			}
+			portalVel.rotate(deltaAngle);
+			
+			//convert to arr
+			realSegArr = realSeg.toArray(realSegArr);
+			imgSegArr = NimgSeg.toArray(imgSegArr);
+			polygons.add(new Tuple2<Polygon, Vector>(new Polygon(realSegArr), vel));
+			polygons.add(new Tuple2<Polygon, Vector>(new Polygon(imgSegArr), portalVel));
+			
+			//logging
+			long et = System.nanoTime();
+			Logging.addLog("\tcut polygon: "+(et-st)/1000+"us");
+			
+			return polygons;
 		}
 		
 		//move cut portion to other side of portal
-		Polygon[] polygons = {polygon};
+		polygons.add(new Tuple2<Polygon, Vector>(polygon, vel));
 		//logging
 		long et = System.nanoTime();
 		Logging.addLog("\tcut polygon: "+(et-st)/1000+"us");
 		
-		
 		return polygons;
 	}
 
-	private Tuple3<RayObject, Vector, Float> closestCollisionPoint(Polygon[] polygons, Vector vel){
+	private Tuple3<RayObject, Vector, Float> closestCollisionPoint(ArrayList<Tuple2<Polygon, Vector>> polygons, Vector vel){
 		long st = System.nanoTime();
 		int HBC = 0, EPC = 0;
 		ArrayList<Tuple3<RayObject, Vector, Float>>allCollisions = new ArrayList<Tuple3<RayObject, Vector, Float>>();
 		
 		for(RayObject obj:handler.getWorld().getRayObjects()) {
 			if(obj.isSolid) {
-				for(int i = 0;i < polygons.length;i++) {
-					Vector[] vertices = polygons[i].getVertices();
-					Rectangle2D.Float bound = polygons[i].getBoundingRect();
+				for(int i = 0;i < polygons.size();i++) {
+					
+					float realAngle = (float) Math.atan2(vel.getY(), vel.getX());
+					float portalAngle = (float) Math.atan2(polygons.get(i).getSecond().getY(), polygons.get(i).getSecond().getX());
+					float deltaAngle = portalAngle-realAngle;
+					
+					Vector[] vertices = polygons.get(i).getFirst().getVertices();
+					Rectangle2D.Float bound = polygons.get(i).getFirst().getBoundingRect();
 					if(Collisions.lineRect(obj.getX1(), obj.getY1(), obj.getX2(), obj.getY2(), 
 							bound.x, bound.y, bound.width, bound.height)) {
+						//System.out.println(deltaAngle);
 						//checking hitbox vertex collisions
 						for(Vector vertex:vertices) {
-							Vector collisionPoint = Collisions.lineLineVector(vertex.getX(), vertex.getY(), vertex.getX()-vel.getX(), vertex.getY()-vel.getY(), 
+							Vector collisionPoint = Collisions.lineLineVector(vertex.getX(), vertex.getY(), vertex.getX()-polygons.get(i).getSecond().getX(), vertex.getY()-polygons.get(i).getSecond().getY(), 
 									obj.getX1(), obj.getY1(), obj.getX2(), obj.getY2());
 							HBC++;
 							if(collisionPoint != null) {
 								float dist = Func.dist(collisionPoint.getX(), collisionPoint.getY(), vertex.getX(), vertex.getY());
 								Vector slide = new Vector(obj.getX2()-obj.getX1(), obj.getY2()-obj.getY1());
+								slide.rotate(deltaAngle);
 								allCollisions.add(new Tuple3<RayObject, Vector, Float>(obj, slide, dist));
 							}
 						}
@@ -192,20 +272,22 @@ public class Player extends Entity{
 						for(int j = 0;j < vertices.length;j++) {
 							//check endpoint 1
 							Vector collisionPoint1 = Collisions.lineLineVector(tail.getX(), tail.getY(), vertices[j].getX(), vertices[j].getY(), 
-									obj.getX1(), obj.getY1(), obj.getX1()+vel.getX(), obj.getY1()+vel.getY());
+									obj.getX1(), obj.getY1(), obj.getX1()+polygons.get(i).getSecond().getX(), obj.getY1()+polygons.get(i).getSecond().getY());
 							EPC++;
 							if(collisionPoint1 != null) {
 								float dist = Func.dist(collisionPoint1.getX(), collisionPoint1.getY(), obj.getX1(), obj.getY1());
 								Vector slide = new Vector(vertices[j].getX()-tail.getX(), vertices[j].getY()-tail.getY());
+								slide.rotate(deltaAngle);
 								allCollisions.add(new Tuple3<RayObject, Vector, Float>(obj, slide, dist));
 							}
 							//check endpoint 2
 							Vector collisionPoint2 = Collisions.lineLineVector(tail.getX(), tail.getY(), vertices[j].getX(), vertices[j].getY(), 
-									obj.getX2(), obj.getY2(), obj.getX2()+vel.getX(), obj.getY2()+vel.getY());
+									obj.getX2(), obj.getY2(), obj.getX2()+polygons.get(i).getSecond().getX(), obj.getY2()+polygons.get(i).getSecond().getY());
 							EPC++;
 							if(collisionPoint2 != null) {
 								float dist = Func.dist(collisionPoint2.getX(), collisionPoint2.getY(), obj.getX2(), obj.getY2());
 								Vector slide = new Vector(vertices[j].getX()-tail.getX(), vertices[j].getY()-tail.getY());
+								slide.rotate(deltaAngle);
 								allCollisions.add(new Tuple3<RayObject, Vector, Float>(obj, slide, dist));
 							}
 							tail = vertices[j];
@@ -277,7 +359,7 @@ public class Player extends Entity{
 		}
 		long et = System.nanoTime();
 		Logging.addLog("\tpolygon move: "+(et-st)/1000+"us");
-		return new Polygon(newPoints, newPoints.length);
+		return new Polygon(newPoints);
 	}
 
 	private Polygon getHitboxSweep(Polygon hitbox, Vector vel) {
@@ -322,7 +404,7 @@ public class Player extends Entity{
 		}
 		long et = System.nanoTime();
 		Logging.addLog("\tpolygon sweep: "+(et-st)/1000+"us");
-		return new Polygon(newPointsArr, newPointsArr.length);
+		return new Polygon(newPointsArr);
 
 		//		//get diagonals
 		//		Vector diagT = new Vector((float)(hitbox.getMaxX()-hitbox.getMinX()),(float)(hitbox.getMaxY()-hitbox.getMinY()));

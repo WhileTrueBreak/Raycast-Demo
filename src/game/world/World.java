@@ -42,6 +42,15 @@ public class World {
 		rayObjects.add(rp2);
 		rayObjects.add(new RayPortal(handler, 2, 4, 2, 6, rp2));
 		
+//		float x = 5;
+//		
+//		rayObjects.add(new RayWall(handler, 0, 0, 0, 5, new Color(0, 0, 0)));
+//		rayObjects.add(new RayWall(handler, 5, -x, 5, 5+x, new Color(0, 0, 0)));
+//		rayObjects.add(new RayWall(handler, 0, 0.1f, 5, 0.1f-x, new Color(0, 0, 0)));
+//		
+//		RayPortal rp1 = new RayPortal(handler, 0, 0, 5, -x);
+//		rayObjects.add(rp1);
+//		rayObjects.add(new RayPortal(handler, 0, 5, 5, 5+x, rp1));
 		/////////////////////////////////////////////////////////////////////
 		
 	}
@@ -55,9 +64,9 @@ public class World {
 
 	public void render(Graphics g) {
 		
-//		for(RayObject obj:rayObjects) {
-//			obj.render(g);
-//		}
+		for(RayObject obj:rayObjects) {
+			obj.render(g);
+		}
 		player.render(g);
 		//render center
 //		g.setColor(new Color(0,0,0));

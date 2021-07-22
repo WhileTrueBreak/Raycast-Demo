@@ -61,13 +61,8 @@ public class Ray {
 		this.theta = theta;
 		this.nextRay = null;
 		this.layer = layer;
-		if(x1>x2) {
-			minX = x2;
-			maxX = x1;
-		}else {
-			minX = x1;
-			maxX = x2;
-		}
+		this.minX = Math.min(x1, x2);
+		this.maxX = Math.max(x1, x2);
 	}
 
 	public void render(Graphics g){
