@@ -202,12 +202,9 @@ public class Player extends Entity{
 				Vector mappedPoint = Vector.add(portalPos1, resolute);
 				Vector perp = Vector.sub(branchVector, resolute);
 				
-				float fromCollision = Func.dist(portalObject.getX1(), portalObject.getY1(), mappedPoint.getX(), mappedPoint.getY());
-				float collisionPercent = fromCollision/portalLength;
-				
-				float exitdx = linkedPortal.getX2()-linkedPortal.getX1();
-				float exitdy = linkedPortal.getY2()-linkedPortal.getY1();
-				Vector exitPoint = new Vector(linkedPortal.getX1()+exitdx*collisionPercent, linkedPortal.getY1()+exitdy*collisionPercent);
+				Vector fromCollision = new Vector(mappedPoint.getX()-portalObject.getX1(), mappedPoint.getY()-portalObject.getY1());
+				fromCollision.rotate(deltaAngle);
+				Vector exitPoint = new Vector(linkedPortal.getX1()+fromCollision.getX(), linkedPortal.getY1()+fromCollision.getY());
 				
 				perp.rotate(deltaAngle);
 				exitPoint.add(perp);
@@ -298,12 +295,22 @@ public class Player extends Entity{
 		}
 		
 		float maxDist = 0;
+		float lowestDot = Float.POSITIVE_INFINITY;
 		Tuple3<RayObject, Vector, Float> closestCollision = null;
 		
 		for(Tuple3<RayObject, Vector, Float> col:allCollisions) {
 			if(col.getThird()>maxDist) {
 				closestCollision = col;
 				maxDist = col.getThird();
+				lowestDot = Float.POSITIVE_INFINITY;
+			}
+			if(col.getThird()==maxDist) {
+				float dot = Vector.dot(vel, col.getSecond());
+				if(dot < lowestDot) {
+					closestCollision = col;
+					maxDist = col.getThird();
+					lowestDot = dot;
+				}
 			}
 		}
 		
