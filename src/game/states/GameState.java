@@ -11,7 +11,7 @@ public class GameState extends State{
 	
 	public GameState(Handler handler) {
 		super(handler);
-		handler.getCamera().setScale(handler.getWidth()/12);
+		handler.getCamera().setScale(handler.getWidth()/4);
 		world = new World(handler);
 	}
 	

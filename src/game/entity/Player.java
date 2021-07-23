@@ -23,17 +23,17 @@ public class Player extends Entity{
 	private final static float PLAYER_WIDTH = 0.4f;
 	private final static float PLAYER_HEIGHT = 0.4f;
 
-	private final static float PLAYER_MOVE_SPEED = 3.7f;
+	private final static float PLAYER_MOVE_SPEED = 1.7f;
 
 	private RayEmitter rayEmitter;
 
 	public Player(float x, float y, Handler handler) {
-		super(x, y, handler);
+		super(x, y, PLAYER_WIDTH, PLAYER_HEIGHT, handler);
 		Vector[] hitboxVertex = {new Vector(0,0), new Vector(PLAYER_WIDTH, 0), new Vector(PLAYER_WIDTH, PLAYER_HEIGHT), new Vector(0, PLAYER_HEIGHT)};
 		hitbox = new Polygon(hitboxVertex);
 		hitboxRotation = (int) Math.signum(getHitboxRotation());
 		//hitbox = new Rectangle2D.Float(0, 0, PLAYER_WIDTH, PLAYER_HEIGHT);
-		rayEmitter = new RayEmitter(handler, x+PLAYER_WIDTH/2, y+PLAYER_HEIGHT/2);
+		rayEmitter = new RayEmitter(handler, this.x+this.width/2, this.y+this.height/2);
 	}
 
 	@Override
@@ -46,12 +46,12 @@ public class Player extends Entity{
 		long est = System.nanoTime();
 		Logging.addLog("Move time: "+(est-st)/1000+"us");
 		
-		rayEmitter.setX(x+PLAYER_WIDTH/2);
-		rayEmitter.setY(y+PLAYER_HEIGHT/2);
+		rayEmitter.setX(this.x+this.width/2);
+		rayEmitter.setY(this.y+this.height/2);
 		rayEmitter.setRayObjects(handler.getWorld().getRayObjects());
 		rayEmitter.updateRays();
 		//handler.getCamera().focusOnEntity(this, 1.1f);
-		handler.getCamera().focusOnPoint(x+PLAYER_WIDTH/2, y+PLAYER_HEIGHT/2, 0.1f);
+		handler.getCamera().focusOnPoint(this.x+this.width/2, this.y+this.height/2, 0.1f);
 		
 		//logging
 		long et = System.nanoTime();
@@ -69,17 +69,17 @@ public class Player extends Entity{
 		
 		long st = System.nanoTime();
 		
-		rayEmitter.render(g);
+		rayEmitter.render(g, this.entityRelativeAngle);
 		
-		for(Tuple2<Polygon, Vector> poly:cutPolygon(getHitboxNewPos(hitbox, new Vector(0, 0)), new Vector(0, 0))) {
+		for(Tuple2<Polygon, Vector> poly:cutPolygon(getHitboxNewPos(getRelativeHitbox(), new Vector(0, 0)), new Vector(0, 0))) {
 			poly.getFirst().render(handler, g);
 		}
 		
-//		g.setColor(new Color(0, 255, 0));
-//		g.fillRect((int)(x*handler.getCamera().getScale()-handler.getCamera().getXoff()), 
-//				(int)(y*handler.getCamera().getScale()-handler.getCamera().getYoff()), 
-//				(int)(PLAYER_WIDTH*handler.getCamera().getScale()), 
-//				(int)(PLAYER_HEIGHT*handler.getCamera().getScale()));
+		g.setColor(new Color(0, 255, 0, 100));
+		g.fillRect((int)(x*handler.getCamera().getScale()-handler.getCamera().getXoff()), 
+				(int)(y*handler.getCamera().getScale()-handler.getCamera().getYoff()), 
+				(int)(PLAYER_WIDTH*handler.getCamera().getScale()), 
+				(int)(PLAYER_HEIGHT*handler.getCamera().getScale()));
 		
 		//logging
 		long et = System.nanoTime();
@@ -104,8 +104,8 @@ public class Player extends Entity{
 		}
 		vel.normalise();
 		vel.mult((float) (PLAYER_MOVE_SPEED/handler.getCurrentFps()));
-		vel = new Vector((float) (vel.getX()*Math.cos(handler.getWorld().getRotation())-vel.getY()*Math.sin(handler.getWorld().getRotation())),
-				(float) (vel.getX()*Math.sin(handler.getWorld().getRotation())+vel.getY()*Math.cos(handler.getWorld().getRotation())));
+		vel = new Vector((float) (vel.getX()*Math.cos(this.entityRelativeAngle)-vel.getY()*Math.sin(this.entityRelativeAngle)),
+				(float) (vel.getX()*Math.sin(this.entityRelativeAngle)+vel.getY()*Math.cos(this.entityRelativeAngle)));
 		//collisions
 		vel = collisions(vel);
 		//portal collisions
@@ -120,7 +120,7 @@ public class Player extends Entity{
 		//get polygon points
 		//Vector[] points = getHitboxPolygon(vel);
 		//cut polygon with portal
-		ArrayList<Tuple2<Polygon, Vector>>polygons = cutPolygon(getHitboxSweep(hitbox, vel), vel);
+		ArrayList<Tuple2<Polygon, Vector>>polygons = cutPolygon(getHitboxSweep(this.getRelativeHitbox(), vel), vel);
 		Tuple3<RayObject, Vector, Float> collisionData = closestCollisionPoint(polygons, vel);
 		ArrayList<RayObject> done = new ArrayList<RayObject>();
 		while(collisionData != null) {
@@ -136,7 +136,7 @@ public class Player extends Entity{
 			float dot = objV.getX()*vel.getX()+objV.getY()*vel.getY();
 			vel = Vector.mult(objV, dot);
 			done.add(obj);
-			polygons = cutPolygon(getHitboxSweep(hitbox, vel), vel);
+			polygons = cutPolygon(getHitboxSweep(this.getRelativeHitbox(), vel), vel);
 			collisionData = closestCollisionPoint(polygons, vel);
 		}
 		return vel;
@@ -158,7 +158,7 @@ public class Player extends Entity{
 		if(portalObject != null) {
 			Vector tail = polygon.getVertices()[polygon.getVertexCount()-1];
 			
-			boolean onRealSide = !Collisions.lineLine(this.x+PLAYER_WIDTH/2, this.y+PLAYER_HEIGHT/2, tail.getX(), tail.getY(), 
+			boolean onRealSide = !Collisions.lineLine(this.x+this.width/2, this.y+this.height/2, tail.getX(), tail.getY(), 
 					portalObject.getX1(), portalObject.getY1(), portalObject.getX2(), portalObject.getY2());
 			
 			ArrayList<Vector> realSeg = new ArrayList<Vector>();
@@ -191,7 +191,6 @@ public class Player extends Entity{
 			float enteranceAngle = (float) Math.atan2(portalObject.getY2()-portalObject.getY1(), portalObject.getX2()-portalObject.getX1());
 			float exitAngle = (float) Math.atan2(linkedPortal.getY2()-linkedPortal.getY1(), linkedPortal.getX2()-linkedPortal.getX1());
 			float deltaAngle = exitAngle-enteranceAngle;
-			float portalLength = Func.dist(portalObject.getX1(), portalObject.getY1(), portalObject.getX2(), portalObject.getY2());
 			
 			for(Vector point:imgSeg) {
 				Vector portalVector = Vector.sub(portalPos2, portalPos1);
@@ -472,7 +471,7 @@ public class Player extends Entity{
 			if(obj instanceof RayPortal) {
 				RayPortal portalObject = (RayPortal) obj;
 				Vector collisionPoint = Collisions.lineLineVector(portalObject.getX1(), portalObject.getY1(), portalObject.getX2(), portalObject.getY2(), 
-						x+PLAYER_WIDTH/2, y+PLAYER_HEIGHT/2, x+PLAYER_WIDTH/2+vel.getX(), y+PLAYER_HEIGHT/2+vel.getY());
+						x+this.width/2, y+this.height/2, x+this.width/2+vel.getX(), y+this.height/2+vel.getY());
 				if(collisionPoint != null){
 					RayPortal linkedPortal = portalObject.getLinkedPortal();
 					float enteranceAngle = (float) Math.atan2(portalObject.getY2()-portalObject.getY1(), portalObject.getX2()-portalObject.getX1());
@@ -489,10 +488,10 @@ public class Player extends Entity{
 					vel = new Vector((float) (vel.getX()*Math.cos(deltaAngle)-vel.getY()*Math.sin(deltaAngle)),
 							(float) (vel.getX()*Math.sin(deltaAngle)+vel.getY()*Math.cos(deltaAngle)));
 
-					tx = exitPoint.getX()-PLAYER_WIDTH/2;
-					ty = exitPoint.getY()-PLAYER_HEIGHT/2;
+					tx = exitPoint.getX()-this.width/2;
+					ty = exitPoint.getY()-this.height/2;
 					collided = true;
-					handler.getWorld().setRotation(handler.getWorld().getRotation()+deltaAngle);
+					this.entityRelativeAngle += deltaAngle;
 				}
 			}else {
 				continue;
@@ -502,21 +501,21 @@ public class Player extends Entity{
 			//move camera to player teleported location relative to previous location
 			float camPlayerXoff, camPlayerYoff;
 			float relPlayerX, relPlayerY;
-			relPlayerX = (x+(float)PLAYER_WIDTH/2)*handler.getCamera().getScale() - (float)handler.getWidth ()/2;
-			relPlayerY = (y+(float)PLAYER_HEIGHT/2)*handler.getCamera().getScale() - (float)handler.getHeight()/2;
+			relPlayerX = (x+(float)this.width/2)*handler.getCamera().getScale() - (float)handler.getWidth ()/2;
+			relPlayerY = (y+(float)this.height/2)*handler.getCamera().getScale() - (float)handler.getHeight()/2;
 			camPlayerXoff = handler.getCamera().getXoff() - relPlayerX;
 			camPlayerYoff = handler.getCamera().getYoff() - relPlayerY;
 			//rotate for portal
-			float theta = handler.getWorld().getRotation();
+			float theta = this.entityRelativeAngle;
 			
 			float camPlayerXoffT = (float)(camPlayerXoff*Math.cos(theta)-camPlayerYoff*Math.sin(theta));
 			camPlayerYoff = (float)(camPlayerXoff*Math.sin(theta)+camPlayerYoff*Math.cos(theta));
 			camPlayerXoff = camPlayerXoffT;
 
-			handler.getCamera().focusOnPoint(tx+PLAYER_WIDTH/2, ty+PLAYER_HEIGHT/2, 0);
+			handler.getCamera().focusOnPoint(tx+this.width/2, ty+this.height/2, 0);
 			handler.getCamera().move(camPlayerXoff, camPlayerYoff);
 
-			handler.getCamera().setRot(-handler.getWorld().getRotation());
+			handler.getCamera().setRot(-this.entityRelativeAngle);
 
 			this.x = tx;
 			this.y = ty;

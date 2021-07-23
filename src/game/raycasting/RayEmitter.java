@@ -150,7 +150,7 @@ public class RayEmitter {
 		return false;
 	}
 
-	public void render(Graphics g) {
+	public void render(Graphics g, float relativeRotation) {
 		//format in to array
 		
 		//0-rays
@@ -188,7 +188,7 @@ public class RayEmitter {
 			for(int j = 0;j < rayChains[lastIndex][i].length;j++) {
 				if(rayChains[lastIndex][i][j]!=null) {
 					float dist = rays.get(lastIndex).getDistance(depth);
-					float angle = rays.get(lastIndex).getTheta()-handler.getWorld().getRotation();
+					float angle = rays.get(lastIndex).getTheta()-relativeRotation;
 					Vector pos = new Vector((float)(Math.cos(angle)*dist+this.x),(float)(Math.sin(angle)*dist+this.y));
 					RayEndpointInfo info = new RayEndpointInfo(rayChains[lastIndex][i][j], pos, depth, i, rayChains[lastIndex][i][0]);
 					if(i == 0) info = new RayEndpointInfo(rayChains[lastIndex][i][j], pos, depth, i, null);
@@ -209,7 +209,7 @@ public class RayEmitter {
 				for(int k = 0;k < rayChains[i][j].length;k++) {
 					if(rayChains[i][j][k]!=null) {
 						float dist = rays.get(i).getDistance(depth);
-						float angle = rays.get(i).getTheta()-handler.getWorld().getRotation();
+						float angle = rays.get(i).getTheta()-relativeRotation;
 						Vector pos = new Vector((float)(Math.cos(angle)*dist+this.x),(float)(Math.sin(angle)*dist+this.y));
 						RayEndpointInfo newInfo = new RayEndpointInfo(rayChains[i][j][k], pos, depth, j, rayChains[i][j][0]);
 						if(j == 0) newInfo = new RayEndpointInfo(rayChains[i][j][k], pos, depth, j, null);

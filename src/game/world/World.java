@@ -19,38 +19,43 @@ public class World {
 	
 	private Player player;
 	
-	private float rotation = (float) (0*Math.PI/180);
+	//private float rotation = (float) (0*Math.PI/180);
 	
 	public World(Handler handler) {
 		this.handler = handler;
 		handler.setWorld(this);
 		rayObjects = new ArrayList<RayObject>();
-		player = new Player(1, 5, handler);
+		player = new Player(1, 0, handler);
 		
 		/////////////////////////////////MAP/////////////////////////////////
 
-		rayObjects.add(new RayWall(handler, 0, 4, 4, 0, new Color(0, 0, 0)));
-		rayObjects.add(new RayWall(handler, 2, 4, 4, 2, new Color(0, 0, 0)));
-		rayObjects.add(new RayWall(handler, -1, 4, 0, 4, new Color(0, 0, 0)));
-		rayObjects.add(new RayWall(handler, -1, 6, 0, 6, new Color(0, 0, 0)));
-		
-		RayPortal rp1 = new RayPortal(handler, 0, 6, 2, 6);
-		rayObjects.add(rp1);
-		rayObjects.add(new RayPortal(handler, 4, 0, 4, 2, rp1));
-		
-		RayPortal rp2 = new RayPortal(handler, -1, 4, -1, 6);
-		rayObjects.add(rp2);
-		rayObjects.add(new RayPortal(handler, 2, 4, 2, 6, rp2));
-		
-//		float x = 5;
+//		rayObjects.add(new RayWall(handler, 0, 4, 4, 0, new Color(0, 0, 0)));
+//		rayObjects.add(new RayWall(handler, 2, 4, 4, 2, new Color(0, 0, 0)));
+//		rayObjects.add(new RayWall(handler, -1, 4, 0, 4, new Color(0, 0, 0)));
+//		rayObjects.add(new RayWall(handler, -1, 6, 0, 6, new Color(0, 0, 0)));
 //		
-//		rayObjects.add(new RayWall(handler, 0, 0, 0, 5, new Color(0, 0, 0)));
-//		rayObjects.add(new RayWall(handler, 5, -x, 5, 5+x, new Color(0, 0, 0)));
-//		rayObjects.add(new RayWall(handler, 0, 0.1f, 5, 0.1f-x, new Color(0, 0, 0)));
-//		
-//		RayPortal rp1 = new RayPortal(handler, 0, 0, 5, -x);
+//		RayPortal rp1 = new RayPortal(handler, 0, 6, 2, 6);
 //		rayObjects.add(rp1);
-//		rayObjects.add(new RayPortal(handler, 0, 5, 5, 5+x, rp1));
+//		rayObjects.add(new RayPortal(handler, 4, 0, 4, 2, rp1));
+//		
+//		RayPortal rp2 = new RayPortal(handler, -1, 4, -1, 6);
+//		rayObjects.add(rp2);
+//		rayObjects.add(new RayPortal(handler, 2, 4, 2, 6, rp2));
+
+		rayObjects.add(new RayWall(handler, 0, 0, 0, -1, new Color(0, 0, 0)));
+		rayObjects.add(new RayWall(handler, 0, 1, 0, 2, new Color(0, 0, 0)));
+		rayObjects.add(new RayWall(handler, 5, 0, 5, -2, new Color(0, 0, 0)));
+		rayObjects.add(new RayWall(handler, 5, 1, 5, 3, new Color(0, 0, 0)));
+		rayObjects.add(new RayWall(handler, 5, 1, 6, 1, new Color(0, 0, 0)));
+		rayObjects.add(new RayWall(handler, 5, 0, 6, 0, new Color(0, 0, 0)));
+		
+		RayPortal rp1 = new RayPortal(handler, 0, -1, 5, -2);
+		rayObjects.add(rp1);
+		rayObjects.add(new RayPortal(handler, 0, 2, 5, 3, rp1));
+		
+		RayPortal rp2 = new RayPortal(handler, 0, 0, 0, 1);
+		rayObjects.add(rp2);
+		rayObjects.add(new RayPortal(handler, 6, 0, 6, 1, rp2));
 		/////////////////////////////////////////////////////////////////////
 		
 	}
@@ -63,10 +68,10 @@ public class World {
 	}
 
 	public void render(Graphics g) {
-		
 		for(RayObject obj:rayObjects) {
 			obj.render(g);
 		}
+		
 		player.render(g);
 		//render center
 //		g.setColor(new Color(0,0,0));
@@ -77,12 +82,12 @@ public class World {
 		return rayObjects;
 	}
 
-	public float getRotation() {
-		return rotation;
-	}
-
-	public void setRotation(float rotation) {
-		this.rotation = rotation;
-	}
+//	public float getRotation() {
+//		return rotation;
+//	}
+//
+//	public void setRotation(float rotation) {
+//		this.rotation = rotation;
+//	}
 	
 }
